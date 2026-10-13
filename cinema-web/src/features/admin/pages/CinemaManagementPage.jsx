@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { cinemaApi, cityApi, hallApi, seatApi } from '../../cinema/api/cinemaApi';
 import { showtimeApi } from '../../showtime/api/showtimeApi';
+import { groupSeatsByRow } from '../../../utils/seatLayout';
 
 const emptyCinema = { name: '', address: '', description: '', cityId: '' };
 const emptyHall = { name: '', totalRows: 8, seatsPerRow: 10 };
@@ -90,6 +91,7 @@ const CinemaManagementPage = () => {
   };
 
   const loadSeats = (hallId) => seatApi.getByHall(hallId).then(setSeats).catch(() => setError('Không thể tải sơ đồ ghế.'));
+  const seatRows = groupSeatsByRow(seats);
 
   return (
     <div className="admin-page">
@@ -159,7 +161,34 @@ const CinemaManagementPage = () => {
                 </div>
               </section>
             )}
-            {seats.length > 0 && <div className="seat-admin-grid">{seats.map((seat) => <select key={seat.id} value={seat.seatType} onChange={(event) => seatApi.updateType(seat.id, { seatType: event.target.value }).then(() => loadSeats(seat.hallId))}><option value="NORMAL">{seat.fullSeatName} · Thường</option><option value="VIP">{seat.fullSeatName} · VIP</option><option value="COUPLE">{seat.fullSeatName} · Couple</option></select>)}</div>}
+            {seats.length > 0 && (
+              <section className="seat-admin-layout" aria-label="Thiết lập loại ghế theo hàng">
+                <div className="seat-admin-heading"><div><p className="eyebrow">SEAT CONFIGURATION</p><h3>Sơ đồ loại ghế</h3></div><span>{seats.length} ghế</span></div>
+                <div className="seat-admin-screen">MÀN HÌNH</div>
+                <div className="seat-admin-rows">
+                  {seatRows.map((row) => (
+                    <div className="seat-admin-row" key={row.label}>
+                      <span className="seat-admin-row-label">{row.label}</span>
+                      <div className="seat-admin-row-items">
+                        {row.seats.map((seat) => (
+                          <label className={`seat-admin-cell type-${String(seat.seatType || 'NORMAL').toLowerCase()}`} key={seat.id}>
+                            <span>{seat.seatNumber || seat.seatName || seat.fullSeatName || seat.id}</span>
+                            <select
+                              aria-label={`Loại ghế ${seat.seatNumber || seat.seatName || seat.fullSeatName || seat.id}`}
+                              value={seat.seatType}
+                              onChange={(event) => seatApi.updateType(seat.id, { seatType: event.target.value }).then(() => loadSeats(seat.hallId))}
+                            >
+                              <option value="NORMAL">Thường</option><option value="VIP">VIP</option><option value="COUPLE">Couple</option>
+                            </select>
+                          </label>
+                        ))}
+                      </div>
+                      <span className="seat-admin-row-label seat-admin-row-label-end">{row.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
         ) : <div className="empty-state">Chọn một cụm rạp để quản lý phòng chiếu và suất chiếu.</div>}
       </div>
