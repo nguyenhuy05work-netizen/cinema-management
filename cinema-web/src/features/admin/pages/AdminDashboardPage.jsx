@@ -2,9 +2,10 @@ import { Link } from 'react-router-dom';
 
 const modules = [
   { number: '01', icon: '▣', title: 'Phim & thể loại', detail: 'Biên tập danh mục phim, thông tin phát hành và thể loại.', path: '/admin/movies', color: 'coral' },
-  { number: '02', icon: '⌂', title: 'Rạp & phòng chiếu', detail: 'Quản lý cụm rạp, phòng, sơ đồ và cấu hình ghế.', path: '/admin/cinemas', color: 'blue' },
-  { number: '03', icon: '◷', title: 'Lịch suất chiếu', detail: 'Sắp xếp lịch trình và cập nhật giá vé theo suất.', path: '/admin/showtimes', color: 'gold' },
-  { number: '04', icon: '♙', title: 'Tài khoản khách hàng', detail: 'Theo dõi vai trò, trạng thái và gửi thông báo.', path: '/admin/users', color: 'green' },
+  { number: '02', icon: '✎', title: 'Quản lý bài đánh giá phim', detail: 'Viết, chỉnh sửa và gắn bài đánh giá với phim.', path: '/admin/reviews', color: 'blue' },
+  { number: '03', icon: '⌂', title: 'Rạp & phòng chiếu', detail: 'Quản lý cụm rạp, phòng, sơ đồ và cấu hình ghế.', path: '/admin/cinemas', color: 'gold' },
+  { number: '04', icon: '◷', title: 'Lịch suất chiếu', detail: 'Sắp xếp lịch trình và cập nhật giá vé theo suất.', path: '/admin/showtimes', color: 'green' },
+  { number: '05', icon: '♙', title: 'Tài khoản khách hàng', detail: 'Theo dõi vai trò, trạng thái và gửi thông báo.', path: '/admin/users', color: 'coral' },
 ];
 
 const AdminDashboardPage = () => (
@@ -18,7 +19,7 @@ const AdminDashboardPage = () => (
       <div className="admin-welcome-art" aria-hidden="true"><span>✦</span><i /><i /><i /></div>
       <div className="admin-welcome-note"><span className="admin-status-dot" /> KHU VỰC DÀNH RIÊNG CHO ADMIN</div>
     </section>
-    <div className="admin-section-heading"><div><p className="admin-eyebrow">WORKSPACES</p><h2>Khu vực quản lý</h2></div><span>04 MODULE</span></div>
+    <div className="admin-section-heading"><div><p className="admin-eyebrow">WORKSPACES</p><h2>Khu vực quản lý</h2></div><span>05 MODULE</span></div>
     <div className="admin-link-grid">
       {modules.map((module) => (
         <Link to={module.path} className={`admin-module ${module.color}`} key={module.number}>

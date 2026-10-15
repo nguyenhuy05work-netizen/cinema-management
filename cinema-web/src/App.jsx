@@ -20,6 +20,8 @@ import ShowtimeManagementPage from './features/admin/pages/ShowtimeManagementPag
 import NotificationsPage from './features/user/pages/NotificationsPage';
 import ProtectedRoute from './routes/ProtectedRoute';
 import ReviewsPage from './features/reviews/pages/ReviewsPage';
+import ReviewDetailPage from './features/reviews/pages/ReviewDetailPage';
+import ReviewManagementPage from './features/admin/pages/ReviewManagementPage';
 import ServicesPage from './features/services/pages/ServicesPage';
 import './experience.css';
 
@@ -36,6 +38,8 @@ function App() {
             <Route path="/cinemas" element={<CinemaListPage />} />
             <Route path="/cinemas/:id/showtimes" element={<CinemaShowtimesPage />} />
             <Route path="/reviews" element={<ReviewsPage />} />
+            <Route path="/reviews/movie/:movieId" element={<ReviewsPage />} />
+            <Route path="/reviews/:id" element={<ReviewDetailPage />} />
             <Route path="/services" element={<ServicesPage />} />
 
             <Route path="/login" element={<LoginPage />} />
@@ -50,6 +54,7 @@ function App() {
               <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
               <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
               <Route path="/admin/movies" element={<MovieManagementPage />} />
+              <Route path="/admin/reviews" element={<ReviewManagementPage />} />
               <Route path="/admin/cinemas" element={<CinemaManagementPage />} />
               <Route path="/admin/showtimes" element={<ShowtimeManagementPage />} />
               <Route path="/admin/users" element={<UserManagementPage />} />
