@@ -47,11 +47,13 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             
             // 3. Cấu hình Phân quyền API
+            // 3. Cấu hình Phân quyền API
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Preflight
-                .requestMatchers("/api/v1/auth/**").permitAll()        // Auth APIs
-                .requestMatchers("/api/v1/bookings/**").permitAll() // <--- THÊM DÒNG NÀY ĐỂ UNBLOCK BOOKING
-                .requestMatchers("/ws-cinema/**").permitAll()          // WebSocket STOMP Handshake
+                .requestMatchers("/api/v1/auth/**").permitAll()        // Auth APIs (có v1)
+                .requestMatchers("/api/auth/**").permitAll()         // <--- THÊM DÒNG NÀY ĐỂ KHỚP VỚI POSTMAN KHÔNG CÓ v1
+                .requestMatchers("/api/v1/bookings/**").permitAll() 
+                .requestMatchers("/ws-cinema/**").permitAll()         // WebSocket STOMP Handshake
                 .requestMatchers("/api/cinemas/**").permitAll()        // Cinema module APIs
                 .requestMatchers("/api/cities/**").permitAll()
                 .requestMatchers("/api/halls/**").permitAll()
