@@ -12,13 +12,18 @@ import java.util.Set;
 @AllArgsConstructor
 @NoArgsConstructor
 public class JwtAuthResponse {
+
     private String accessToken;
     private String refreshToken;
-    
+
     @Builder.Default
     private String tokenType = "Bearer";
-    
+
     private String email;
     private String fullName;
+
     private Set<String> roles;
+
+    // Danh sách quyền được cấp cho người dùng
+    private Set<String> permissions;
 }
