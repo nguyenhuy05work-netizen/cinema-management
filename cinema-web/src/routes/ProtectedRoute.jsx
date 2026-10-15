@@ -1,20 +1,27 @@
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const ProtectedRoute = ({ allowedRoles }) => {
   const { isAuthenticated, hasRole } = useAuth();
+  const location = useLocation();
 
-  // 1. Nếu chưa đăng nhập -> Đẩy về trang /login
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return (
+      <Navigate
+        to="/login"
+        state={{ from: location }}
+        replace
+      />
+    );
   }
 
-  // 2. Nếu có yêu cầu Vai trò (Role) và User không thuộc Vai trò đó -> Đẩy về Trang chủ
-  if (allowedRoles && !allowedRoles.some((role) => hasRole(role))) {
+  if (
+    allowedRoles &&
+    !allowedRoles.some((role) => hasRole(role))
+  ) {
     return <Navigate to="/" replace />;
   }
 
-  // 3. Hợp lệ -> Cho phép truy cập route con (thông qua Outlet)
   return <Outlet />;
 };
 

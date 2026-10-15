@@ -3,9 +3,13 @@ package com.example.demo.module.booking.controller;
 import com.example.demo.module.booking.dto.BookingRequest;
 import com.example.demo.module.booking.dto.BookingResponse;
 import com.example.demo.module.booking.service.BookingService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/bookings")
@@ -14,17 +18,47 @@ public class BookingController {
 
     private final BookingService bookingService;
 
-    // API Tạo đơn đặt vé mới
     @PostMapping
-    public ResponseEntity<BookingResponse> createBooking(@RequestBody BookingRequest request) {
-        BookingResponse response = bookingService.createBooking(request);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<BookingResponse> createBooking(
+            @Valid @RequestBody BookingRequest request,
+            Authentication authentication
+    ) {
+        BookingResponse response = bookingService.createBooking(
+                request,
+                authentication.getName()
+        );
+
+        return ResponseEntity.status(201).body(response);
     }
 
-    // API Xem thông tin đơn đặt vé theo ID
+    @GetMapping("/me")
+    public List<BookingResponse> getMyBookings(
+            Authentication authentication
+    ) {
+        return bookingService.getMyBookings(
+                authentication.getName()
+        );
+    }
+
     @GetMapping("/{id}")
-    public ResponseEntity<BookingResponse> getBookingById(@PathVariable Long id) {
-        BookingResponse response = bookingService.getBookingById(id);
-        return ResponseEntity.ok(response);
+    public BookingResponse getBookingById(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        return bookingService.getBookingById(
+                id,
+                authentication.getName()
+        );
+    }
+
+    @PostMapping("/{id}/cancel")
+    public BookingResponse cancelBooking(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        return bookingService.cancelBooking(
+                id,
+                authentication.getName()
+        );
     }
 }
