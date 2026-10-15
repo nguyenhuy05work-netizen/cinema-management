@@ -253,7 +253,8 @@ class BookingFlowTests {
                 .isEqualByComparingTo("340000.00");
 
         assertThat(booking.getHoldExpiresAt())
-                .isAfter(java.time.OffsetDateTime.now().plusMinutes(14));
+                .isAfter(java.time.OffsetDateTime.now().plusMinutes(9))
+                .isBefore(java.time.OffsetDateTime.now().plusMinutes(11));
 
         BookingResponse loaded =
                 bookings.getBookingById(booking.getId(), f.email());
@@ -794,10 +795,12 @@ class BookingFlowTests {
                     .forEach(s -> s.setHoldExpiresAt(past));
         });
 
+        // MySQL hết hạn nhưng khóa Redis vẫn còn: ghế vẫn đang HELD.
+        // Đọc sơ đồ không tự cập nhật trạng thái lưu trong MySQL.
         assertThat(
                 layouts.getSeatLayoutByShowtimeId(f.showtimeId())
                         .getAvailableSeats()
-        ).isEqualTo(3);
+        ).isEqualTo(2);
 
         tx.executeWithoutResult(status ->
                 assertThat(

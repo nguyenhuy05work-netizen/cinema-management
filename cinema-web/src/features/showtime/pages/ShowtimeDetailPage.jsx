@@ -1,8 +1,10 @@
+
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { showtimeApi } from '../api/showtimeApi';
 import { bookingApi } from '../../booking/api/bookingApi';
 import { useAuth } from '../../../context/AuthContext';
+import { groupSeatsByRow } from '../../../utils/seatLayout';
 
 export default function ShowtimeDetailPage() {
   const { id } = useParams();
@@ -16,6 +18,7 @@ export default function ShowtimeDetailPage() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
+  // Tải thông tin suất chiếu và cập nhật ghế mỗi 5 giây
   useEffect(() => {
     let active = true;
     let loading = false;
@@ -23,6 +26,7 @@ export default function ShowtimeDetailPage() {
 
     const load = async () => {
       if (loading) return;
+
       loading = true;
 
       try {
@@ -60,29 +64,7 @@ export default function ShowtimeDetailPage() {
     };
   }, [id]);
 
-  if (!showtime || !layout || showtime.id !== Number(id)) {
-    return (
-      <div className="page-shell">
-        <p>{error || 'Đang tải sơ đồ ghế...'}</p>
-      </div>
-    );
-  }
-
-  const seats = layout.seats || [];
-
-  const selectedDetails = seats.filter((seat) =>
-    selectedSeats.includes(seat.seatId)
-  );
-
-  const total = selectedDetails.reduce(
-    (sum, seat) => sum + Number(seat.price),
-    0
-  );
-
-  const staleSelection =
-    selectedDetails.length !== selectedSeats.length ||
-    selectedDetails.some((seat) => seat.status !== 'AVAILABLE');
-
+  // Chọn hoặc bỏ chọn ghế
   const toggle = (seat) => {
     if (seat.status !== 'AVAILABLE' || holding) return;
 
@@ -95,11 +77,14 @@ export default function ShowtimeDetailPage() {
     );
   };
 
+  // Tạo booking và chuyển đến trang thanh toán
   const reserve = async () => {
     if (!isAuthenticated) {
       setMessage('Vui lòng đăng nhập để đặt vé.');
       return;
     }
+
+    if (holding || !selectedSeats.length) return;
 
     setHolding(true);
     setMessage('');
@@ -127,8 +112,42 @@ export default function ShowtimeDetailPage() {
     }
   };
 
+  // Trạng thái tải dữ liệu
+  if (!showtime || !layout || showtime.id !== Number(id)) {
+    return (
+      <div className="page-shell">
+        <p>{error || 'Đang tải sơ đồ ghế...'}</p>
+      </div>
+    );
+  }
+
+  // Danh sách ghế từ backend
+  const seats = layout?.seats || layout?.showtimeSeats || [];
+
+  // Nhóm ghế theo hàng để hiển thị giao diện mới
+  const seatRows = groupSeatsByRow(seats);
+
+  // Thông tin các ghế đã chọn
+  const selectedDetails = seats.filter((seat) =>
+    selectedSeats.includes(seat.seatId)
+  );
+
+  // Tổng tiền
+  const total = selectedDetails.reduce(
+    (sum, seat) => sum + Number(seat.price || 0),
+    0
+  );
+
+  // Kiểm tra ghế đã chọn còn khả dụng không
+  const staleSelection =
+    selectedDetails.length !== selectedSeats.length ||
+    selectedDetails.some(
+      (seat) => seat.status !== 'AVAILABLE'
+    );
+
   return (
     <div className="page-shell">
+      {/* Quay lại trang phim */}
       <Link
         className="back-link"
         to={`/movies/${showtime.movieId}`}
@@ -136,9 +155,13 @@ export default function ShowtimeDetailPage() {
         ← Quay lại phim
       </Link>
 
+      {/* Thông tin suất chiếu */}
       <section className="section-heading">
         <div>
-          <p className="eyebrow">{showtime.movieTitle}</p>
+          <p className="eyebrow">
+            {showtime.movieTitle}
+          </p>
+
           <h1>{showtime.hallName}</h1>
 
           <p className="muted">
@@ -152,49 +175,96 @@ export default function ShowtimeDetailPage() {
         </div>
       </section>
 
+      {/* Sơ đồ ghế */}
       <div className="seat-panel">
-        <div className="screen-label">MÀN HÌNH</div>
+        <div className="screen-label">
+          MÀN HÌNH
+        </div>
 
-        <div className="seat-grid">
-          {seats.map((seat) => (
-            <button
-              type="button"
-              key={seat.seatId}
-              className={`seat seat-${seat.status.toLowerCase()} seat-${seat.seatType.toLowerCase()} ${
-                selectedSeats.includes(seat.seatId)
-                  ? 'seat-selected'
-                  : ''
-              }`}
-              disabled={
-                holding ||
-                (seat.status !== 'AVAILABLE' &&
-                  !selectedSeats.includes(seat.seatId))
-              }
-              title={`${seat.seatNumber}: ${Number(
-                seat.price
-              ).toLocaleString('vi-VN')} đ`}
-              onClick={() =>
-                selectedSeats.includes(seat.seatId) &&
-                seat.status !== 'AVAILABLE'
-                  ? setSelectedSeats((current) =>
-                      current.filter(
-                        (value) => value !== seat.seatId
-                      )
-                    )
-                  : toggle(seat)
-              }
+        <div
+          className="seat-layout"
+          aria-label="Sơ đồ ghế theo hàng"
+        >
+          {seatRows.map((row) => (
+            <div
+              className="seat-row"
+              key={row.label}
             >
-              {seat.seatNumber}
-            </button>
+              <span className="seat-row-label">
+                {row.label}
+              </span>
+
+              <div className="seat-row-items">
+                {row.seats.map((seat) => {
+                  const selected = selectedSeats.includes(
+                    seat.seatId
+                  );
+
+                  const available =
+                    seat.status === 'AVAILABLE';
+
+                  const seatName =
+                    seat.seatNumber ||
+                    seat.seatName ||
+                    seat.seatId;
+
+                  return (
+                    <button
+                      type="button"
+                      key={seat.seatId}
+                      className={`seat seat-${String(
+                        seat.status || 'AVAILABLE'
+                      ).toLowerCase()} seat-${String(
+                        seat.seatType || ''
+                      ).toLowerCase()} ${
+                        selected ? 'seat-selected' : ''
+                      }`}
+                      disabled={
+                        holding ||
+                        (!available && !selected)
+                      }
+                      title={`${seatName}: ${Number(
+                        seat.price || 0
+                      ).toLocaleString('vi-VN')} đ`}
+                      aria-label={`Ghế ${seatName}, ${
+                        available
+                          ? 'còn trống'
+                          : 'không khả dụng'
+                      }`}
+                      onClick={() => {
+                        if (selected && !available) {
+                          setSelectedSeats((current) =>
+                            current.filter(
+                              (value) =>
+                                value !== seat.seatId
+                            )
+                          );
+                        } else {
+                          toggle(seat);
+                        }
+                      }}
+                    >
+                      {seatName}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <span className="seat-row-label seat-row-label-end">
+                {row.label}
+              </span>
+            </div>
           ))}
         </div>
 
+        {/* Không có ghế */}
         {!seats.length && (
           <p className="muted">
             Sơ đồ ghế chưa được thiết lập.
           </p>
         )}
 
+        {/* Chú thích trạng thái ghế */}
         <div className="seat-legend">
           <span>
             <i className="legend available" />
@@ -217,13 +287,20 @@ export default function ShowtimeDetailPage() {
           </span>
         </div>
 
+        {/* Thanh thông tin đặt vé */}
         <div className="seat-booking-bar">
           <div>
-            <strong>{selectedSeats.length} ghế đã chọn</strong>
-            <span>{total.toLocaleString('vi-VN')} đ</span>
+            <strong>
+              {selectedSeats.length} ghế đã chọn
+            </strong>
+
+            <span>
+              {total.toLocaleString('vi-VN')} đ
+            </span>
           </div>
 
           <button
+            type="button"
             className="primary-button"
             disabled={
               holding ||
@@ -238,19 +315,22 @@ export default function ShowtimeDetailPage() {
           </button>
         </div>
 
+        {/* Thời gian giữ ghế */}
         <p className="muted">
-          Ghế được giữ tối đa 15 phút sau khi tạo đơn, hoặc
-          đến khi suất chiếu bắt đầu. Giá thanh toán do hệ
-          thống xác nhận.
+          Ghế được giữ tối đa 10 phút sau khi tạo đơn,
+          hoặc đến khi suất chiếu bắt đầu.
+          Giá thanh toán do hệ thống xác nhận.
         </p>
 
+        {/* Ghế đã bị người khác giữ */}
         {staleSelection && (
           <p className="form-error">
-            Một số ghế đã được người khác giữ. Hãy bỏ chọn
-            và chọn lại.
+            Một số ghế đã được người khác giữ.
+            Hãy bỏ chọn và chọn lại.
           </p>
         )}
 
+        {/* Thông báo lỗi */}
         {(message || error) && (
           <p className="form-error" role="alert">
             {message || error}

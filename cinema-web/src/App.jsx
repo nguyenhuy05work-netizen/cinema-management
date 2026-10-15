@@ -1,3 +1,4 @@
+
 import {
   BrowserRouter,
   Routes,
@@ -34,6 +35,12 @@ import MovieManagementPage from './features/admin/pages/MovieManagementPage';
 import CinemaManagementPage from './features/admin/pages/CinemaManagementPage';
 import ShowtimeManagementPage from './features/admin/pages/ShowtimeManagementPage';
 
+import ReviewsPage from './features/reviews/pages/ReviewsPage';
+import ServicesPage from './features/services/pages/ServicesPage';
+
+import './experience.css';
+
+
 function App() {
   return (
     <BrowserRouter>
@@ -41,26 +48,12 @@ function App() {
         <Routes>
           <Route element={<MainLayout />}>
             <Route path="/" element={<MovieListPage />} />
-
-            <Route
-              path="/movies/:id"
-              element={<MovieDetailPage />}
-            />
-
-            <Route
-              path="/showtimes/:id"
-              element={<ShowtimeDetailPage />}
-            />
-
-            <Route
-              path="/cinemas"
-              element={<CinemaListPage />}
-            />
-
-            <Route
-              path="/cinemas/:id/showtimes"
-              element={<CinemaShowtimesPage />}
-            />
+            <Route path="/movies/:id" element={<MovieDetailPage />} />
+            <Route path="/showtimes/:id" element={<ShowtimeDetailPage />} />
+            <Route path="/cinemas" element={<CinemaListPage />} />
+            <Route path="/cinemas/:id/showtimes" element={<CinemaShowtimesPage />} />
+            <Route path="/reviews" element={<ReviewsPage />} />
+            <Route path="/services" element={<ServicesPage />} />
 
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
@@ -85,31 +78,16 @@ function App() {
             </Route>
           </Route>
 
-          <Route element={<AdminLayout />}>
-            <Route
-              path="/admin/dashboard"
-              element={<AdminDashboardPage />}
-            />
-
-            <Route
-              path="/admin/movies"
-              element={<MovieManagementPage />}
-            />
-
-            <Route
-              path="/admin/cinemas"
-              element={<CinemaManagementPage />}
-            />
-
-            <Route
-              path="/admin/showtimes"
-              element={<ShowtimeManagementPage />}
-            />
-
-            <Route
-              path="/admin/users"
-              element={<UserManagementPage />}
-            />
+          {/* Giao diện dành cho Admin (Dùng AdminLayout) */}
+          <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
+            <Route element={<AdminLayout />}>
+              <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+              <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+              <Route path="/admin/movies" element={<MovieManagementPage />} />
+              <Route path="/admin/cinemas" element={<CinemaManagementPage />} />
+              <Route path="/admin/showtimes" element={<ShowtimeManagementPage />} />
+              <Route path="/admin/users" element={<UserManagementPage />} />
+            </Route>
           </Route>
 
           <Route
