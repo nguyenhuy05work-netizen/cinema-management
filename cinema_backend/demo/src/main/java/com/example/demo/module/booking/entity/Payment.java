@@ -6,6 +6,10 @@ import com.example.demo.entity.enums.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
+<<<<<<< HEAD
+=======
+import java.math.BigDecimal;
+>>>>>>> 0aab215b3782922d9801818344333672fb981730
 import java.time.LocalDateTime;
 
 @Entity
@@ -20,11 +24,16 @@ public class Payment {
     private Long id;
 
     @OneToOne(fetch = FetchType.LAZY)
+<<<<<<< HEAD
     @JoinColumn(name = "booking_id", nullable = false)
+=======
+    @JoinColumn(name = "booking_id", nullable = false, unique = true)
+>>>>>>> 0aab215b3782922d9801818344333672fb981730
     private Booking booking;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_method", nullable = false, length = 20)
+<<<<<<< HEAD
     private PaymentMethod paymentMethod;
 
     @Column(name = "transaction_code")
@@ -36,4 +45,23 @@ public class Payment {
 
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
+=======
+    private PaymentMethod paymentMethod; // MOMO, VNPAY, ZALOPAY, CASH
+
+    @Column(name = "amount", nullable = false, precision = 10, scale = 2)
+    private BigDecimal amount; // Số tiền thực tế thanh toán qua cổng
+
+    @Column(name = "transaction_code", length = 100)
+    private String transactionCode; // Mã giao dịch do VNPAY/MoMo cấp (dùng đối soát)
+
+    @Column(name = "response_code", length = 50)
+    private String responseCode; // Mã phản hồi lỗi hoặc thành công từ cổng thanh toán (ví dụ: "00")
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_status", nullable = false, length = 20)
+    private PaymentStatus paymentStatus; // PENDING, SUCCESS, FAILED
+
+    @Column(name = "paid_at")
+    private LocalDateTime paidAt; // Thời điểm giao dịch thành công thực tế
+>>>>>>> 0aab215b3782922d9801818344333672fb981730
 }

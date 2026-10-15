@@ -44,6 +44,7 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             
             // 3. Cấu hình Phân quyền API
+<<<<<<< HEAD
             // 3. Cấu hình Phân quyền API
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Preflight
@@ -51,6 +52,13 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()         // <--- THÊM DÒNG NÀY ĐỂ KHỚP VỚI POSTMAN KHÔNG CÓ v1
                 .requestMatchers("/api/v1/bookings/**").permitAll() 
                 .requestMatchers("/ws-cinema/**").permitAll()         // WebSocket STOMP Handshake
+=======
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Preflight
+                .requestMatchers("/api/v1/auth/**").permitAll()        // Auth APIs
+                .requestMatchers("/api/v1/bookings/**").permitAll() // <--- THÊM DÒNG NÀY ĐỂ UNBLOCK BOOKING
+                .requestMatchers("/ws-cinema/**").permitAll()          // WebSocket STOMP Handshake
+>>>>>>> 0aab215b3782922d9801818344333672fb981730
                 .requestMatchers("/api/cinemas/**").permitAll()        // Cinema module APIs
                 .requestMatchers("/api/cities/**").permitAll()
                 .requestMatchers("/api/halls/**").permitAll()
@@ -60,8 +68,11 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/showtimes/**").permitAll()   // Showtime module APIs
                 .requestMatchers("/api/v1/users/**").authenticated()
                 .requestMatchers("/api/v1/notifications/**").authenticated()
+<<<<<<< HEAD
                 .requestMatchers("/api/concessions/**").permitAll()
 .requestMatchers("/api/coupons/**").permitAll()
+=======
+>>>>>>> 0aab215b3782922d9801818344333672fb981730
                 .requestMatchers("/api/v1/roles/**").permitAll()
                 .anyRequest().authenticated()                          // Các API khác ngoài danh sách trên cần Token
             );
