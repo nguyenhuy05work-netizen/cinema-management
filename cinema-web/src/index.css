@@ -526,11 +526,9 @@ body { background: #141414; color: var(--ink); }
 
   /* 1. Hiệu ứng khi di chuột vào (Hover) */
   .main-nav-link:hover {
-<<<<<<< HEAD
-    color: #2563eb; /* Đổi sang màu xanh khi di chuột */
-=======
     color: #d125eb; /* Đổi sang màu xanh khi di chuột */
->>>>>>> 0aab215b3782922d9801818344333672fb981730
+    color: #2563eb; /* Đổi sang màu xanh khi di chuột */
+
     transform: translateY(-3px); /* Đẩy chữ nổi lên trên 3px */
     text-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* Thêm bóng nhẹ bên dưới */
   }
@@ -550,11 +548,9 @@ body { background: #141414; color: var(--ink); }
 
   /* 1. Hiệu ứng khi di chuột vào (Hover) */
   .back-link:hover {
-<<<<<<< HEAD
-    color: #2563eb; /* Đổi sang màu xanh khi di chuột */
-=======
     color: #a62ef0; /* Đổi sang màu xanh khi di chuột */
->>>>>>> 0aab215b3782922d9801818344333672fb981730
+    color: #2563eb; /* Đổi sang màu xanh khi di chuột */
+
     transform: translateY(-3px); /* Đẩy chữ nổi lên trên 3px */
     text-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* Thêm bóng nhẹ bên dưới */
   }

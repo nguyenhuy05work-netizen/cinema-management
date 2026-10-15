@@ -36,8 +36,14 @@ const LoginPage = () => {
       login(result, result.accessToken);
 
       // Chuyển hướng về trang trước đó hoặc trang chủ
+      const roles = result.roles ?? result.role ?? [];
+      const normalizedRoles = Array.isArray(roles) ? roles : [roles];
+      const isAdmin = normalizedRoles.some((role) => {
+        const value = typeof role === 'string' ? role : role?.name;
+        return value === 'ADMIN' || value === 'ROLE_ADMIN';
+      });
       const originPath = location.state?.from?.pathname || '/';
-      navigate(originPath, { replace: true });
+      navigate(isAdmin ? '/admin/dashboard' : originPath, { replace: true });
 
     } catch (requestError) {
       setError(getApiErrorMessage(requestError, 'Đăng nhập thất bại. Vui lòng kiểm tra lại tài khoản hoặc email kích hoạt.'));

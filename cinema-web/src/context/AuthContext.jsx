@@ -1,7 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { STORAGE_KEYS } from '../utils/constants';
 
-// Khởi tạo Context
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
@@ -9,7 +8,6 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Khôi phục thông tin từ LocalStorage khi ứng dụng khởi chạy
   useEffect(() => {
     const savedToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
     const savedUser = localStorage.getItem(STORAGE_KEYS.USER_INFO);
@@ -19,36 +17,59 @@ export const AuthProvider = ({ children }) => {
         setToken(savedToken);
         setUser(JSON.parse(savedUser));
       } catch (error) {
-        console.error('Lỗi khi đọc thông tin user từ localStorage:', error);
+        console.error('Lỗi khi đọc thông tin user:', error);
         localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
         localStorage.removeItem(STORAGE_KEYS.USER_INFO);
       }
     }
+
     setLoading(false);
   }, []);
 
-  // Hàm xử lý Đăng nhập thành công
   const login = (userData, accessToken) => {
     setUser(userData);
     setToken(accessToken);
+
     localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
     localStorage.setItem(STORAGE_KEYS.USER_INFO, JSON.stringify(userData));
   };
 
-  // Hàm xử lý Đăng xuất
   const logout = () => {
     setUser(null);
     setToken(null);
+
     localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
     localStorage.removeItem(STORAGE_KEYS.USER_INFO);
+    localStorage.removeItem('refreshToken');
   };
 
+  // Kiểm tra Role
   const hasRole = (role) => {
-    const roles = user?.roles || user?.role || [];
+    const roles = user?.roles ?? user?.role ?? [];
     const normalizedRoles = Array.isArray(roles) ? roles : [roles];
+
+    const expectedRole = role.startsWith('ROLE_')
+      ? role
+      : `ROLE_${role}`;
+
     return normalizedRoles.some((item) => {
       const value = typeof item === 'string' ? item : item?.name;
-      return value === role || value === `ROLE_${role}`;
+
+      return value === expectedRole ||
+             value === expectedRole.replace('ROLE_', '');
+    });
+  };
+
+  // Kiểm tra Permission
+  const hasPermission = (permissionCode) => {
+    const permissions = user?.permissions ?? [];
+
+    return permissions.some((permission) => {
+      const code = typeof permission === 'string'
+        ? permission
+        : permission?.code;
+
+      return code === permissionCode;
     });
   };
 
@@ -60,6 +81,7 @@ export const AuthProvider = ({ children }) => {
         isAuthenticated: !!token,
         isAdmin: hasRole('ADMIN'),
         hasRole,
+        hasPermission,
         loading,
         login,
         logout,
@@ -70,11 +92,12 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// Custom Hook để gọi AuthContext nhanh hơn ở các component
 export const useAuth = () => {
   const context = useContext(AuthContext);
+
   if (!context) {
     throw new Error('useAuth phải được sử dụng bên trong AuthProvider');
   }
+
   return context;
 };

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { showtimeApi } from '../api/showtimeApi';
 import { useAuth } from '../../../context/AuthContext';
+import { groupSeatsByRow } from '../../../utils/seatLayout';
 
 const HOLD_DURATION_SECONDS = 15 * 60; // 15 phút
 
@@ -52,6 +53,7 @@ const ShowtimeDetailPage = () => {
   if (!showtime) return <div className="page-shell"><p className="muted">Đang tải sơ đồ ghế...</p></div>;
 
   const seats = layout?.seats || layout?.showtimeSeats || [];
+  const seatRows = groupSeatsByRow(seats);
   const selectedDetails = seats.filter((seat) => selectedSeats.includes(seat.id));
 
   const totalPrice = selectedDetails.reduce(
@@ -131,19 +133,28 @@ const ShowtimeDetailPage = () => {
       <div className="seat-panel">
         <div className="screen-label">MÀN HÌNH</div>
 
-        <div className="seat-grid">
-          {seats.map((seat) => (
-            <button
-              type="button"
-              className={`seat seat-${String(seat.status || 'AVAILABLE').toLowerCase()} seat-${String(
-                seat.seatType || ''
-              ).toLowerCase()} ${selectedSeats.includes(seat.id) ? 'seat-selected' : ''}`}
-              key={seat.id}
-              disabled={seat.status !== 'AVAILABLE' && !selectedSeats.includes(seat.id)}
-              onClick={() => toggleSeat(seat)}
-            >
-              {seat.seatNumber || seat.seatName || seat.id}
-            </button>
+        <div className="seat-layout" aria-label="Sơ đồ ghế theo hàng">
+          {seatRows.map((row) => (
+            <div className="seat-row" key={row.label}>
+              <span className="seat-row-label">{row.label}</span>
+              <div className="seat-row-items">
+                {row.seats.map((seat) => (
+                  <button
+                    type="button"
+                    className={`seat seat-${String(seat.status || 'AVAILABLE').toLowerCase()} seat-${String(
+                      seat.seatType || ''
+                    ).toLowerCase()} ${selectedSeats.includes(seat.id) ? 'seat-selected' : ''}`}
+                    key={seat.id}
+                    disabled={seat.status !== 'AVAILABLE' && !selectedSeats.includes(seat.id)}
+                    onClick={() => toggleSeat(seat)}
+                    aria-label={`Ghế ${seat.seatNumber || seat.seatName || seat.id}, ${seat.status === 'AVAILABLE' ? 'còn trống' : 'không khả dụng'}`}
+                  >
+                    {seat.seatNumber || seat.seatName || seat.id}
+                  </button>
+                ))}
+              </div>
+              <span className="seat-row-label seat-row-label-end">{row.label}</span>
+            </div>
           ))}
         </div>
 

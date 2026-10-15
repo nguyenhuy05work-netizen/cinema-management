@@ -23,56 +23,57 @@ public class UserController {
 
     private final UserService userService;
 
-    // ==================== ENDPOINTS CHO USER DANG DANG NHAP ====================
-
     @GetMapping("/me")
-    public ResponseEntity<UserResponse> getMyProfile(Authentication authentication) {
-        String email = authentication.getName();
-        return ResponseEntity.ok(userService.getUserProfileByEmail(email));
+    @PreAuthorize("hasAuthority('PROFILE_READ')")
+    public ResponseEntity<UserResponse> getMyProfile(
+            Authentication authentication) {
+        return ResponseEntity.ok(
+                userService.getUserProfileByEmail(authentication.getName()));
     }
 
     @PutMapping("/me")
+    @PreAuthorize("hasAuthority('PROFILE_UPDATE')")
     public ResponseEntity<UserResponse> updateMyProfile(
             Authentication authentication,
             @Valid @RequestBody UpdateProfileRequest request) {
-        String email = authentication.getName();
-        return ResponseEntity.ok(userService.updateProfile(email, request));
+        return ResponseEntity.ok(
+                userService.updateProfile(authentication.getName(), request));
     }
 
     @PutMapping("/me/change-password")
+    @PreAuthorize("hasAuthority('PASSWORD_CHANGE')")
     public ResponseEntity<Void> changePassword(
             Authentication authentication,
             @Valid @RequestBody ChangePasswordRequest request) {
-        String email = authentication.getName();
-        userService.changePassword(email, request);
+        userService.changePassword(authentication.getName(), request);
         return ResponseEntity.noContent().build();
     }
 
-    // ==================== ENDPOINTS DANG CHO ADMIN ====================
-
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('USER_READ')")
     public ResponseEntity<Page<UserResponse>> getAllUsers(
             @PageableDefault(size = 20) Pageable pageable) {
         return ResponseEntity.ok(userService.getAllUsers(pageable));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<UserResponse> getUserById(@PathVariable Long id) {
+    @PreAuthorize("hasAuthority('USER_READ')")
+    public ResponseEntity<UserResponse> getUserById(
+            @PathVariable Long id) {
         return ResponseEntity.ok(userService.getUserById(id));
     }
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('USER_UPDATE_STATUS')")
     public ResponseEntity<UserResponse> updateUserStatus(
             @PathVariable Long id,
             @Valid @RequestBody UpdateUserStatusRequest request) {
-        return ResponseEntity.ok(userService.updateUserStatus(id, request));
+        return ResponseEntity.ok(
+                userService.updateUserStatus(id, request));
     }
 
     @PutMapping("/{id}/roles")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('USER_ASSIGN_ROLES')")
     public ResponseEntity<UserResponse> assignRoles(
             @PathVariable Long id,
             @Valid @RequestBody AssignRolesRequest request) {

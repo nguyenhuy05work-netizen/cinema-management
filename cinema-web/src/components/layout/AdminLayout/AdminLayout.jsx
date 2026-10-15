@@ -1,33 +1,51 @@
-import { Link, Outlet } from 'react-router-dom';
-import './AdminLayout.css'; // Import CSS riêng ở đây
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../context/AuthContext';
+import './AdminLayout.css';
 
 const AdminLayout = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const links = [
+    { to: '/admin/dashboard', label: 'Tổng quan', icon: '◫' },
+    { to: '/admin/movies', label: 'Phim & thể loại', icon: '▣' },
+    { to: '/admin/cinemas', label: 'Rạp & phòng chiếu', icon: '⌂' },
+    { to: '/admin/showtimes', label: 'Suất chiếu', icon: '◷' },
+    { to: '/admin/users', label: 'Tài khoản', icon: '♙' },
+  ];
+  const signOut = () => {
+    logout();
+    navigate('/login', { replace: true });
+  };
+
   return (
     <div className="admin-container">
-      {/* Sidebar */}
       <aside className="admin-sidebar">
-        <h2 className="admin-sidebar-title">ADMIN PANEL</h2>
-        <nav className="admin-nav">
-          <Link to="/admin/dashboard" className="admin-nav-link">Dashboard</Link>
-          <Link to="/admin/movies" className="admin-nav-link">Quản lý Phim</Link>
-          <Link to="/admin/cinemas" className="admin-nav-link">Quản lý Cụm Rạp</Link>
-          <Link to="/admin/showtimes" className="admin-nav-link">Quản lý Suất chiếu</Link>
-          <Link to="/admin/users" className="admin-nav-link">Quản lý Người dùng</Link>
-          
-          <hr className="admin-nav-divider" />
-          
-          <Link to="/" className="admin-nav-back">Về trang Chủ</Link>
+        <Link to="/admin/dashboard" className="admin-brand"><span className="admin-brand-mark">C</span><span>CINEF<small>CONTROL ROOM</small></span></Link>
+        <p className="admin-nav-caption">KHÔNG GIAN QUẢN TRỊ</p>
+        <nav className="admin-nav" aria-label="Điều hướng quản trị">
+          {links.map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              className={`admin-nav-link ${location.pathname === item.to ? 'active' : ''}`}
+              aria-current={location.pathname === item.to ? 'page' : undefined}
+            >
+              <span aria-hidden="true">{item.icon}</span>{item.label}
+            </Link>
+          ))}
         </nav>
+        <div className="admin-sidebar-bottom">
+          <div className="admin-user-card"><span className="admin-avatar">{(user?.fullName || 'A').slice(0, 1).toUpperCase()}</span><span><strong>{user?.fullName || 'Quản trị viên'}</strong><small>ADMINISTRATOR</small></span></div>
+          <button type="button" className="admin-signout" onClick={signOut}>↪ <span>Đăng xuất</span></button>
+        </div>
       </aside>
-
-      {/* Admin Content Area */}
       <div className="admin-content-wrapper">
         <header className="admin-header">
-          <h3 className="admin-header-title">Hệ thống Quản trị Cinema</h3>
+          <div><span className="admin-status-dot" /> KHU VỰC QUẢN TRỊ <span className="admin-header-divider">/</span> CINEF</div>
+          <span className="admin-header-date">{new Intl.DateTimeFormat('vi-VN', { dateStyle: 'full' }).format(new Date())}</span>
         </header>
-        <main className="admin-main-content">
-          <Outlet />
-        </main>
+        <main className="admin-main-content"><Outlet /></main>
       </div>
     </div>
   );

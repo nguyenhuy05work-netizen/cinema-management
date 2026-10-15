@@ -21,36 +21,35 @@ public class NotificationController {
 
     private final NotificationService notificationService;
 
-    // Lấy danh sách thông báo của User đang đăng nhập (bao gồm cả thông báo hệ thống)
     @GetMapping("/me")
+    @PreAuthorize("hasAuthority('NOTIFICATION_READ_OWN')")
     public ResponseEntity<Page<NotificationResponse>> getMyNotifications(
             Authentication authentication,
             @PageableDefault(size = 10) Pageable pageable) {
-        String email = authentication.getName();
-        return ResponseEntity.ok(notificationService.getUserNotifications(email, pageable));
+        return ResponseEntity.ok(
+                notificationService.getUserNotifications(
+                        authentication.getName(), pageable));
     }
 
-    // Đánh dấu 1 thông báo là đã đọc
     @PatchMapping("/{id}/read")
+    @PreAuthorize("hasAuthority('NOTIFICATION_MARK_READ_OWN')")
     public ResponseEntity<Void> markAsRead(
             Authentication authentication,
             @PathVariable Long id) {
-        String email = authentication.getName();
-        notificationService.markAsRead(id, email);
+        notificationService.markAsRead(id, authentication.getName());
         return ResponseEntity.noContent().build();
     }
 
-    // Đánh dấu tất cả thông báo là đã đọc
     @PatchMapping("/read-all")
-    public ResponseEntity<Void> markAllAsRead(Authentication authentication) {
-        String email = authentication.getName();
-        notificationService.markAllAsRead(email);
+    @PreAuthorize("hasAuthority('NOTIFICATION_MARK_READ_OWN')")
+    public ResponseEntity<Void> markAllAsRead(
+            Authentication authentication) {
+        notificationService.markAllAsRead(authentication.getName());
         return ResponseEntity.noContent().build();
     }
 
-    // Admin tạo thông báo hệ thống hoặc gửi cho 1 user cụ thể
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('NOTIFICATION_CREATE')")
     public ResponseEntity<NotificationResponse> createNotification(
             @Valid @RequestBody CreateNotificationRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)

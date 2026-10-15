@@ -8,6 +8,8 @@ import org.springframework.security.core.userdetails.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -18,16 +20,47 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     @Transactional
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String email) {
+
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng với email: " + email));
+                .orElseThrow(() ->
+                        new UsernameNotFoundException(
+                                "Không tìm thấy người dùng với email: " + email
+                        )
+                );
+
+        // Tập hợp tất cả quyền của User
+        Set<SimpleGrantedAuthority> authorities = new HashSet<>();
+
+        // ==========================================
+        // 1. Thêm ROLE vào GrantedAuthority
+        // ==========================================
+        user.getRoles().forEach(role -> {
+
+            authorities.add(
+                    new SimpleGrantedAuthority(
+                            role.getName().name()
+                    )
+            );
+
+            // ==========================================
+            // 2. Thêm Permission của Role
+            // ==========================================
+            role.getPermissions().forEach(permission -> {
+
+                authorities.add(
+                        new SimpleGrantedAuthority(
+                                permission.getCode()
+                        )
+                );
+
+            });
+        });
 
         return new org.springframework.security.core.userdetails.User(
                 user.getEmail(),
                 user.getPasswordHash(),
-                user.getRoles().stream()
-                        .map(role -> new SimpleGrantedAuthority(role.getName().name()))
-                        .collect(Collectors.toList())
+                authorities
         );
     }
 }

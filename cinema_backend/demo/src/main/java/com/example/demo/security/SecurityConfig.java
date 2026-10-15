@@ -15,9 +15,12 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
     @Autowired
@@ -60,9 +63,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/showtimes/**").permitAll()   // Showtime module APIs
                 .requestMatchers("/api/v1/users/**").authenticated()
                 .requestMatchers("/api/v1/notifications/**").authenticated()
-                .requestMatchers("/api/concessions/**").permitAll()
-.requestMatchers("/api/coupons/**").permitAll()
-                .requestMatchers("/api/v1/roles/**").permitAll()
+                .requestMatchers("/api/v1/roles/**").hasRole("ADMIN")
+                .requestMatchers("/api/v1/permissions/**").hasRole("ADMIN")
                 .anyRequest().authenticated()                          // Các API khác ngoài danh sách trên cần Token
             );
 

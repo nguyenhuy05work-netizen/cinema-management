@@ -5,6 +5,7 @@ import com.example.demo.module.cinema.dto.seat.UpdateSeatTypeRequest;
 import com.example.demo.module.cinema.service.SeatService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,14 +18,18 @@ public class SeatController {
     private final SeatService seatService;
 
     @GetMapping("/hall/{hallId}")
-    public ResponseEntity<List<SeatResponse>> getSeatsByHall(@PathVariable Long hallId) {
+    @PreAuthorize("hasAuthority('SEAT_READ')")
+    public ResponseEntity<List<SeatResponse>> getSeatsByHall(
+            @PathVariable Long hallId) {
         return ResponseEntity.ok(seatService.getSeatsByHall(hallId));
     }
 
     @PutMapping("/{id}/type")
+    @PreAuthorize("hasAuthority('SEAT_UPDATE_TYPE')")
     public ResponseEntity<SeatResponse> updateSeatType(
-            @PathVariable Long id, 
+            @PathVariable Long id,
             @RequestBody UpdateSeatTypeRequest request) {
-        return ResponseEntity.ok(seatService.updateSeatType(id, request));
+        return ResponseEntity.ok(
+                seatService.updateSeatType(id, request));
     }
 }
