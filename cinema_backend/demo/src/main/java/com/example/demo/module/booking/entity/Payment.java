@@ -6,10 +6,7 @@ import com.example.demo.entity.enums.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
-<<<<<<< HEAD
-=======
 import java.math.BigDecimal;
->>>>>>> 0aab215b3782922d9801818344333672fb981730
 import java.time.LocalDateTime;
 
 @Entity
@@ -24,28 +21,11 @@ public class Payment {
     private Long id;
 
     @OneToOne(fetch = FetchType.LAZY)
-<<<<<<< HEAD
-    @JoinColumn(name = "booking_id", nullable = false)
-=======
     @JoinColumn(name = "booking_id", nullable = false, unique = true)
->>>>>>> 0aab215b3782922d9801818344333672fb981730
     private Booking booking;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_method", nullable = false, length = 20)
-<<<<<<< HEAD
-    private PaymentMethod paymentMethod;
-
-    @Column(name = "transaction_code")
-    private String transactionCode; // Mã giao dịch trả về từ MoMo, VNPAY,...
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "payment_status", nullable = false, length = 20)
-    private PaymentStatus paymentStatus;
-
-    @Column(name = "paid_at")
-    private LocalDateTime paidAt;
-=======
     private PaymentMethod paymentMethod; // MOMO, VNPAY, ZALOPAY, CASH
 
     @Column(name = "amount", nullable = false, precision = 10, scale = 2)
@@ -63,5 +43,4 @@ public class Payment {
 
     @Column(name = "paid_at")
     private LocalDateTime paidAt; // Thời điểm giao dịch thành công thực tế
->>>>>>> 0aab215b3782922d9801818344333672fb981730
 }

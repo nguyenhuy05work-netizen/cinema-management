@@ -48,14 +48,10 @@ public class Booking {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-<<<<<<< HEAD
-    private BookingStatus status;
-=======
     private BookingStatus status; // PENDING, PAID, CANCELLED, EXPIRED
 
     @Column(name = "hold_expires_at")
     private LocalDateTime holdExpiresAt; // Thời điểm hết hạn giữ ghế (Ví dụ: CreatedAt + 10 phút)[cite: 1]
->>>>>>> 0aab215b3782922d9801818344333672fb981730
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
