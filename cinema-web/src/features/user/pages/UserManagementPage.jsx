@@ -217,7 +217,7 @@ const UserManagementPage = () => {
         </div>
       )}
     </div>
-  );
+    );
 };
 
 export default UserManagementPage;
