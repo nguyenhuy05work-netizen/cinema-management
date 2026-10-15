@@ -61,6 +61,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/movies/**").permitAll()      // Movie module APIs
                 .requestMatchers("/api/v1/genres/**").permitAll()
                 .requestMatchers("/api/v1/showtimes/**").permitAll()   // Showtime module APIs
+                .requestMatchers("/api/v1/reviews/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/v1/reviews/**").permitAll()
                 .requestMatchers("/api/v1/users/**").authenticated()
                 .requestMatchers("/api/v1/notifications/**").authenticated()
                 .requestMatchers("/api/v1/roles/**").hasRole("ADMIN")
