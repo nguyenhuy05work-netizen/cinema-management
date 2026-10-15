@@ -1,74 +1,64 @@
-import { useState } from 'react';
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import { Link, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
-import { userApi } from '../../../features/user/api/userApi';
 import './MainLayout.css';
 
 const MainLayout = () => {
   const location = useLocation();
-  const { login, logout, isAuthenticated, isAdmin, user } = useAuth();
-  const [showTokenPanel, setShowTokenPanel] = useState(false);
-  const [tokenInput, setTokenInput] = useState('');
-  const [tokenMessage, setTokenMessage] = useState('');
-
-  const saveTestToken = async (event) => {
-    event.preventDefault();
-    const token = tokenInput.trim().replace(/^Bearer\s+/i, '');
-    if (!token) {
-      setTokenMessage('Hãy dán access token trước.');
-      return;
-    }
-
-    localStorage.setItem('access_token', token);
-    try {
-      const profile = await userApi.getProfile();
-      login(profile, token);
-      setTokenInput('');
-      setTokenMessage(`Đã kết nối: ${profile.fullName || profile.email}`);
-    } catch (error) {
-      localStorage.removeItem('access_token');
-      setTokenMessage(error.response?.data?.message || 'Token không hợp lệ hoặc đã hết hạn.');
-    }
+  const navigate = useNavigate();
+  const { logout, isAuthenticated, isAdmin, user } = useAuth();
+  const signOut = () => {
+    logout();
+    navigate('/', { replace: true });
   };
+
+  if (isAdmin) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
 
   return (
     <div className="main-layout-container">
-      {/* Header */}
       <header className="main-header netflix-header">
         <div className="main-header-content">
-          <Link to="/" className="main-logo netflix-logo">
-            CINE<span>F</span>
-          </Link>
-
+          <Link to="/" className="main-logo netflix-logo" aria-label="CineF - Trang chủ">CINE<span>F</span></Link>
           <nav className="main-nav">
-            <Link to="/" className={`main-nav-link ${location.pathname === '/' ? 'active' : ''}`}>Phim</Link>
-            <Link to="/cinemas" className={`main-nav-link ${location.pathname.startsWith('/cinemas') ? 'active' : ''}`}>Cụm Rạp</Link>
-
+            <Link to="/" className={`main-nav-link ${location.pathname === '/' ? 'active' : ''}`}>Trang chủ</Link>
+            <Link to="/cinemas" className={`main-nav-link ${location.pathname.startsWith('/cinemas') ? 'active' : ''}`}>Rạp chiếu</Link>
+            <Link to="/reviews" className={`main-nav-link ${location.pathname.startsWith('/reviews') ? 'active' : ''}`}>Góc phê bình</Link>
+            <Link to="/services" className={`main-nav-link ${location.pathname.startsWith('/services') ? 'active' : ''}`}>Dịch vụ</Link>
             {isAuthenticated ? (
               <>
-                <Link to="/profile" className={`main-nav-link ${location.pathname === '/profile' ? 'active' : ''}`}>Hồ sơ</Link>
+                <Link
+                  to="/profile"
+                  className={`header-profile-link ${location.pathname === '/profile' ? 'active' : ''}`}
+                  aria-label="Mở hồ sơ cá nhân"
+                >
+                  <span className="header-profile-avatar">{(user?.fullName || user?.email || 'U').slice(0, 1).toUpperCase()}</span>
+                  <span>{user?.fullName || user?.email}</span>
+                  <span className="header-profile-arrow" aria-hidden="true">↗</span>
+                </Link>
                 <Link to="/notifications" className={`main-nav-link ${location.pathname === '/notifications' ? 'active' : ''}`}>Thông báo</Link>
-              {isAdmin && <Link to="/admin/dashboard" className="admin-link">Quản trị</Link>}
-                <button onClick={logout} className="logout-button">Đăng xuất</button>
+                <button onClick={signOut} className="logout-button">Đăng xuất</button>
               </>
-          ) : (
-            <div className="auth-buttons">
+            ) : (
+              <div className="auth-buttons">
                 <Link to="/login" className="login-button">Đăng nhập</Link>
                 <Link to="/register" className="register-button">Đăng ký</Link>
-            </div>
-         )}
-        </nav>
+              </div>
+            )}
+          </nav>
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="main-content">
         <Outlet />
       </main>
 
-      {/* Footer */}
       <footer className="main-footer">
-        <p>© 2026 Cinema Web Project. All rights reserved.</p>
+        <div className="footer-content">
+          <Link to="/" className="footer-logo">CINEF</Link>
+          <p>Điện ảnh hay hơn khi được sẻ chia.</p>
+          <span>© 2026 CineF. Trải nghiệm điện ảnh của bạn.</span>
+        </div>
       </footer>
     </div>
   );

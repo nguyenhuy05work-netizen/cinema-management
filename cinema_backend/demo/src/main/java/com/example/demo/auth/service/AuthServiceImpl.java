@@ -159,7 +159,7 @@ public String verifyEmail(String token) {
 
         // 2. Cấp Access Token (Có chứa Role mã hóa bên trong)
         String accessToken = tokenProvider.generateTokenFromUser(user);
-        String rawRefreshToken = UUID.randomUUID().toString();
+        
 
        // 1. Tạo chuỗi Refresh Token ngẫu nhiên
 String newRawRefreshToken = UUID.randomUUID().toString(); // Hoặc dùng helper generateToken() của bạn
@@ -188,14 +188,16 @@ refreshTokenRepository.save(newToken);
         Set<String> roles = user.getRoles().stream()
                 .map(role -> role.getName().name())
                 .collect(Collectors.toSet());
+                Set<String> permissions = getUserPermissions(user);
 
         return JwtAuthResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(rawRefreshToken)
-                .email(user.getEmail())
-                .fullName(user.getFullName())
-                .roles(roles) // Trả về trường Roles riêng biệt ở JSON
-                .build();
+        .accessToken(accessToken)
+        .refreshToken(newRawRefreshToken)
+        .email(user.getEmail())
+        .fullName(user.getFullName())
+        .roles(roles)
+        .permissions(permissions)
+        .build();
     }
 
     @Override
@@ -214,7 +216,9 @@ refreshTokenRepository.save(newToken);
         storedToken.setRevoked(true);
         refreshTokenRepository.save(storedToken);
 
-        User user = storedToken.getUser();
+        User user = userRepository.findByEmail(
+        storedToken.getUser().getEmail()
+).orElseThrow(() -> new BadRequestException("Không tìm thấy người dùng!"));
         
         // Sinh Access Token mới chứa mã hóa Role
         String newAccessToken = tokenProvider.generateTokenFromUser(user);
@@ -235,20 +239,28 @@ refreshTokenRepository.save(newToken);
         Set<String> roles = user.getRoles().stream()
                 .map(role -> role.getName().name())
                 .collect(Collectors.toSet());
-
+                Set<String> permissions = getUserPermissions(user);
         return JwtAuthResponse.builder()
-                .accessToken(newAccessToken)
-                .refreshToken(newRawRefreshToken)
-                .email(user.getEmail())
-                .fullName(user.getFullName())
-                .roles(roles) // Trả về trường Roles riêng biệt ở JSON
-                .build();
+        .accessToken(newAccessToken)
+        .refreshToken(newRawRefreshToken)
+        .email(user.getEmail())
+        .fullName(user.getFullName())
+        .roles(roles)
+        .permissions(permissions)
+        .build();
     }
 
     @Override
     public void logout(String token) {
         // Cần thực thi logic cho Logout tại đây khi phát triển tiếp
     }
+
+    private Set<String> getUserPermissions(User user) {
+    return user.getRoles().stream()
+            .flatMap(role -> role.getPermissions().stream())
+            .map(permission -> permission.getCode())
+            .collect(Collectors.toSet());
+}
 
     private String hashString(String input) {
         try {
