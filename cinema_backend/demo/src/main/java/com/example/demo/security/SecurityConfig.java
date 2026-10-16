@@ -61,8 +61,17 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/movies/**").permitAll()      // Movie module APIs
                 .requestMatchers("/api/v1/genres/**").permitAll()
                 .requestMatchers("/api/v1/showtimes/**").permitAll()   // Showtime module APIs
-                .requestMatchers("/api/v1/reviews/admin/**").hasRole("ADMIN")
-                .requestMatchers("/api/v1/reviews/**").permitAll()
+                // Review: thao tác quản lý chỉ dành cho MANAGER
+.requestMatchers("/api/v1/reviews/admin/**")
+    .hasRole("MANAGER")
+
+// Các API đọc review được truy cập công khai
+.requestMatchers(HttpMethod.GET, "/api/v1/reviews/**")
+    .permitAll()
+
+// Các request review khác phải được xác thực
+.requestMatchers("/api/v1/reviews/**")
+    .authenticated()
                 .requestMatchers("/api/v1/users/**").authenticated()
                 .requestMatchers("/api/v1/notifications/**").authenticated()
                 .requestMatchers("/api/v1/roles/**").hasRole("ADMIN")
