@@ -57,41 +57,51 @@ public class SecurityConfig {
 
                 // CORS preflight
                 .requestMatchers(
-                    HttpMethod.OPTIONS, "/**"
+                    HttpMethod.OPTIONS,
+                    "/**"
                 ).permitAll()
 
-                // Authentication
+                // Authentication APIs
                 .requestMatchers(
                     "/api/v1/auth/**",
                     "/api/auth/**"
                 ).permitAll()
 
-                // VNPay callback: không yêu cầu JWT
+                // VNPay callbacks
+                // Không yêu cầu JWT nhưng phải xác thực chữ ký
                 .requestMatchers(
                     HttpMethod.GET,
                     "/api/v1/payments/vnpay/ipn",
                     "/api/v1/payments/vnpay/return"
                 ).permitAll()
 
-                // Booking: yêu cầu đăng nhập
-                // Quyền chi tiết kiểm tra ở Controller
+                // Booking
                 .requestMatchers(
                     "/api/v1/bookings/**"
                 ).authenticated()
 
-                // Ticket check-in: yêu cầu đăng nhập
-                // Sau này sẽ phân quyền riêng cho nhân viên
+                // Ticket check-in
+                // Chỉ nhân viên, quản lý và admin
                 .requestMatchers(
-                 HttpMethod.POST,
-                "/api/v1/tickets/check-in"
+                    HttpMethod.POST,
+                    "/api/v1/tickets/check-in"
+                ).hasAnyRole(
+                    "STAFF",
+                    "MANAGER",
+                    "ADMIN"
+                )
+
+                // Các API ticket khác
+                .requestMatchers(
+                    "/api/v1/tickets/**"
                 ).authenticated()
 
-                // Payment: yêu cầu đăng nhập
+                // Payment
                 .requestMatchers(
                     "/api/v1/payments/**"
                 ).authenticated()
 
-                // Thay đổi trạng thái ghế
+                // Showtime seat management
                 .requestMatchers(
                     HttpMethod.PATCH,
                     "/api/v1/showtimes/*/seats/status"
@@ -102,7 +112,7 @@ public class SecurityConfig {
                     "/ws-cinema/**"
                 ).permitAll()
 
-                // Cinema
+                // Cinema APIs
                 .requestMatchers(
                     "/api/cinemas/**",
                     "/api/cities/**",
@@ -118,27 +128,38 @@ public class SecurityConfig {
                 ).permitAll()
 
                 // Review management
+                // Manager và Admin được quản lý review
                 .requestMatchers(
                     "/api/v1/reviews/admin/**"
-                ).hasRole("ADMIN")
+                ).hasAnyRole(
+                    "MANAGER",
+                    "ADMIN"
+                )
 
+                // Public review reading
                 .requestMatchers(
+                    HttpMethod.GET,
                     "/api/v1/reviews/**"
                 ).permitAll()
 
-                // User, notifications
+                // Other review operations require login
+                .requestMatchers(
+                    "/api/v1/reviews/**"
+                ).authenticated()
+
+                // User and notifications
                 .requestMatchers(
                     "/api/v1/users/**",
                     "/api/v1/notifications/**"
                 ).authenticated()
 
-                // Role & Permission management
+                // Role and permission management
                 .requestMatchers(
                     "/api/v1/roles/**",
                     "/api/v1/permissions/**"
                 ).hasRole("ADMIN")
 
-                // API còn lại
+                // Remaining APIs
                 .anyRequest().authenticated()
             );
 

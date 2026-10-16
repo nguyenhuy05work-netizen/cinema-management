@@ -1,0 +1,275 @@
+
+.role-permission-page {
+  max-width: 1150px;
+  margin: 0 auto;
+  color: #f8fafc;
+}
+
+.role-permission-header {
+  margin-bottom: 28px;
+}
+
+.role-permission-header h2 {
+  margin: 0 0 8px;
+  font-size: 28px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.role-permission-header p {
+  color: #94a3b8;
+}
+
+.rp-role-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.rp-role-picker label {
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.rp-role-picker select,
+.permission-toolbar input {
+  padding: 12px 14px;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  background: #1e2430;
+  color: #ffffff;
+  font-size: 14px;
+  outline: none;
+}
+
+.rp-role-picker select:focus,
+.permission-toolbar input:focus {
+  border-color: #fb7185;
+}
+
+.rp-role-picker select {
+  max-width: 350px;
+}
+
+.rp-role-picker option {
+  background: #1e2430;
+  color: #ffffff;
+}
+
+.permission-toolbar input::placeholder {
+  color: #94a3b8;
+}
+
+.rp-role-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: #1e2430;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.rp-role-summary strong {
+  color: #ffffff;
+  font-size: 16px;
+}
+
+.rp-role-summary span {
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.permission-selector {
+  background: #171c26;
+  padding: 24px;
+  border: 1px solid #334155;
+  border-radius: 14px;
+}
+
+.permission-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 26px;
+}
+
+.permission-toolbar input {
+  flex: 1;
+  min-width: 200px;
+}
+
+.permission-toolbar span {
+  color: #ffffff;
+  font-size: 14px;
+}
+
+.permission-group {
+  margin-bottom: 28px;
+}
+
+.permission-group h3 {
+  font-size: 17px;
+  font-weight: 600;
+  color: #ffffff;
+  border-bottom: 1px solid #334155;
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+
+.permission-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.permission-item {
+  display: flex;
+  gap: 12px;
+  padding: 18px;
+  background: #1e2430;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.permission-item:hover {
+  background: #283142;
+  border-color: #64748b;
+}
+
+.permission-item:has(input:checked) {
+  border-color: #fb7185;
+  background: #2b2532;
+}
+
+.permission-item input {
+  margin-top: 4px;
+  align-self: flex-start;
+  accent-color: #fb7185;
+  width: 16px;
+  height: 16px;
+}
+
+.permission-item span {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.permission-item strong {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.permission-item code {
+  font-size: 12px;
+  color: #fda4af;
+  background: #111827;
+  padding: 4px 8px;
+  border-radius: 5px;
+  overflow-wrap: anywhere;
+  width: fit-content;
+}
+
+.permission-item small {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #cbd5e1;
+}
+
+.rp-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 20px 0;
+  padding: 20px;
+  background: #1e2430;
+  border: 1px solid #334155;
+  border-radius: 12px;
+}
+
+.rp-actions > span {
+  color: #ffffff;
+}
+
+.rp-actions > div {
+  display: flex;
+  gap: 12px;
+}
+
+.rp-actions button,
+.rp-alert button {
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid #475569;
+  background: #334155;
+  color: #ffffff;
+}
+
+.rp-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.rp-actions .rp-save {
+  color: #ffffff;
+  background: #e11d48;
+  border-color: #e11d48;
+}
+
+.rp-actions .rp-save:not(:disabled):hover {
+  background: #be123c;
+}
+
+.rp-alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 10px;
+  margin: 16px 0;
+}
+
+.rp-error {
+  background: #451a1a;
+  color: #fecaca;
+}
+
+.rp-success {
+  background: #15382b;
+  color: #a7f3d0;
+}
+
+@media (max-width: 700px) {
+  .permission-list {
+    grid-template-columns: 1fr;
+  }
+
+  .rp-role-summary {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .permission-selector {
+    padding: 16px;
+  }
+
+  .rp-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

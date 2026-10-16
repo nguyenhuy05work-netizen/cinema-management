@@ -9,34 +9,43 @@ import {
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './routes/ProtectedRoute';
 
+// Layouts
 import MainLayout from './components/layout/MainLayout/MainLayout';
-import AdminLayout from './components/layout/AdminLayout/AdminLayout';
+import ManagerLayout from './components/layout/ManagerLayout/ManagerLayout';
+import AdminSystemLayout from './components/layout/AdminSystemLayout/AdminSystemLayout';
+import ProfileLayout from './components/layout/ProfileLayout/ProfileLayout';
 
+// Authentication
 import LoginPage from './features/auth/pages/LoginPage';
 import RegisterPage from './features/auth/pages/RegisterPage';
 
+// User
 import ProfilePage from './features/user/pages/ProfilePage';
 import UserManagementPage from './features/user/pages/UserManagementPage';
 import NotificationsPage from './features/user/pages/NotificationsPage';
 
+// Movies
 import MovieListPage from './features/movie/pages/MovieListPage';
 import MovieDetailPage from './features/movie/pages/MovieDetailPage';
 
+// Cinemas
 import CinemaListPage from './features/cinema/pages/CinemaListPage';
 import CinemaShowtimesPage from './features/cinema/pages/CinemaShowtimesPage';
 
+// Showtimes
 import ShowtimeDetailPage from './features/showtime/pages/ShowtimeDetailPage';
 
-// Booking & VNPay
+// Booking, VNPay & Tickets
 import CheckoutPage from './features/booking/pages/CheckoutPage';
 import MyBookingsPage from './features/booking/pages/MyBookingsPage';
 import TicketPage from './features/booking/pages/TicketPage';
 
-// Admin
+// Management
 import AdminDashboardPage from './features/admin/pages/AdminDashboardPage';
 import MovieManagementPage from './features/admin/pages/MovieManagementPage';
 import CinemaManagementPage from './features/admin/pages/CinemaManagementPage';
 import ShowtimeManagementPage from './features/admin/pages/ShowtimeManagementPage';
+import RolePermissionManagementPage from './features/admin/pages/RolePermissionManagementPage';
 
 // Reviews
 import ReviewsPage from './features/reviews/pages/ReviewsPage';
@@ -54,7 +63,7 @@ function App() {
       <AuthProvider>
         <Routes>
 
-          {/* GIAO DIỆN KHÁCH HÀNG */}
+          {/* PUBLIC WEBSITE */}
           <Route element={<MainLayout />}>
 
             <Route
@@ -115,17 +124,13 @@ function App() {
               element={<RegisterPage />}
             />
 
-            <Route
-              path="/profile"
-              element={<ProfilePage />}
-            />
-
+            {/* Notifications */}
             <Route
               path="/notifications"
               element={<NotificationsPage />}
             />
 
-            {/* BOOKING - YÊU CẦU ĐĂNG NHẬP */}
+            {/* Booking & VNPay */}
             <Route element={<ProtectedRoute />}>
 
               <Route
@@ -147,47 +152,89 @@ function App() {
 
           </Route>
 
-          {/* GIAO DIỆN ADMIN */}
-          <Route
-            element={
-              <ProtectedRoute allowedRoles={['ADMIN']} />
-            }
-          >
-            <Route element={<AdminLayout />}>
+          {/* USER PROFILE */}
+          <Route element={<ProtectedRoute />}>
+            <Route element={<ProfileLayout />}>
 
               <Route
-                path="/admin"
+                path="/profile"
+                element={<ProfilePage />}
+              />
+
+            </Route>
+          </Route>
+
+          {/* MANAGER */}
+          <Route
+            element={
+              <ProtectedRoute
+                allowedRoles={['MANAGER']}
+              />
+            }
+          >
+            <Route element={<ManagerLayout />}>
+
+              <Route
+                path="/manager"
                 element={
                   <Navigate
-                    to="/admin/dashboard"
+                    to="/manager/dashboard"
                     replace
                   />
                 }
               />
 
               <Route
-                path="/admin/dashboard"
+                path="/manager/dashboard"
                 element={<AdminDashboardPage />}
               />
 
               <Route
-                path="/admin/movies"
+                path="/manager/movies"
                 element={<MovieManagementPage />}
               />
 
               <Route
-                path="/admin/reviews"
+                path="/manager/reviews"
                 element={<ReviewManagementPage />}
               />
 
               <Route
-                path="/admin/cinemas"
+                path="/manager/cinemas"
                 element={<CinemaManagementPage />}
               />
 
               <Route
-                path="/admin/showtimes"
+                path="/manager/showtimes"
                 element={<ShowtimeManagementPage />}
+              />
+
+            </Route>
+          </Route>
+
+          {/* ADMIN SYSTEM */}
+          <Route
+            element={
+              <ProtectedRoute
+                allowedRoles={['ADMIN']}
+              />
+            }
+          >
+            <Route element={<AdminSystemLayout />}>
+
+              <Route
+                path="/admin"
+                element={
+                  <Navigate
+                    to="/admin/role-permissions"
+                    replace
+                  />
+                }
+              />
+
+              <Route
+                path="/admin/role-permissions"
+                element={<RolePermissionManagementPage />}
               />
 
               <Route
@@ -198,10 +245,12 @@ function App() {
             </Route>
           </Route>
 
-          {/* ROUTE KHÔNG TỒN TẠI */}
+          {/* NOT FOUND */}
           <Route
             path="*"
-            element={<Navigate to="/" replace />}
+            element={
+              <Navigate to="/" replace />
+            }
           />
 
         </Routes>
