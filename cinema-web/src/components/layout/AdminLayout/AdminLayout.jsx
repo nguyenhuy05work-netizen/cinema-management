@@ -9,6 +9,7 @@ const AdminLayout = () => {
   const links = [
     { to: '/admin/dashboard', label: 'Tổng quan', icon: '◫' },
     { to: '/admin/movies', label: 'Phim & thể loại', icon: '▣' },
+    { to: '/admin/reviews', label: 'Quản lý bài đánh giá', icon: '✎' },
     { to: '/admin/cinemas', label: 'Rạp & phòng chiếu', icon: '⌂' },
     { to: '/admin/showtimes', label: 'Suất chiếu', icon: '◷' },
     { to: '/admin/users', label: 'Tài khoản', icon: '♙' },

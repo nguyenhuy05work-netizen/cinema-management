@@ -59,6 +59,15 @@ export const ENDPOINTS = {
     DELETE: (movieId, commentId) => `/api/v1/movies/${movieId}/comments/${commentId}`,
   },
 
+  REVIEW: {
+    GET_ALL: '/api/v1/reviews',
+    GET_BY_MOVIE: (movieId) => `/api/v1/reviews/movie/${movieId}`,
+    GET_DETAIL: (id) => `/api/v1/reviews/${id}`,
+    CREATE: '/api/v1/reviews/admin',
+    UPDATE: (id) => `/api/v1/reviews/admin/${id}`,
+    DELETE: (id) => `/api/v1/reviews/admin/${id}`,
+  },
+
   HALL: {
     GET_ALL: '/api/halls',
     GET_DETAIL: (id) => `/api/halls/${id}`,
