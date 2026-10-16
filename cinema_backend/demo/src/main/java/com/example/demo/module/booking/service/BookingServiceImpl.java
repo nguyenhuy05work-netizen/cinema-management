@@ -617,4 +617,48 @@ public class BookingServiceImpl implements BookingService {
 
         return result;
     }
+    @Override
+@Transactional(isolation = Isolation.READ_COMMITTED)
+public void saveVnpayTransaction(
+        Long bookingId,
+        String txnRef,
+        String createDate
+) {
+    Long showtimeId = bookings.findShowtimeId(bookingId)
+            .orElseThrow(() -> new ResourceNotFoundException(
+                    "Không tìm thấy đơn đặt vé."
+            ));
+
+    lockShowtime(showtimeId);
+
+    Booking booking = bookings.findById(bookingId)
+            .orElseThrow();
+
+    expireForShowtime(showtimeId, LocalDateTime.now());
+
+    if (booking.getStatus() != BookingStatus.PENDING) {
+        throw new BadRequestException(
+                "Đơn đặt vé không còn hiệu lực."
+        );
+    }
+
+    Payment payment = payments.findByBookingId(bookingId)
+            .orElseThrow(() -> new ResourceNotFoundException(
+                    "Không tìm thấy thông tin thanh toán."
+            ));
+
+    if (payment.getVnpTxnRef() != null) {
+        if (!Objects.equals(payment.getVnpTxnRef(), txnRef)
+        || !Objects.equals(payment.getVnpCreateDate(), createDate)) {
+            throw new BadRequestException(
+                    "Đơn đã có giao dịch VNPay khác."
+            );
+        }
+
+        return;
+    }
+
+    payment.setVnpTxnRef(txnRef);
+    payment.setVnpCreateDate(createDate);
+}
 }

@@ -1,10 +1,17 @@
-import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+
+import { useEffect, useRef, useState } from 'react';
+import {
+  Link,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom';
+
 import { bookingApi } from '../api/bookingApi';
 import { useAuth } from '../../../context/AuthContext';
 
 const money = (value) =>
-  Number(value).toLocaleString('vi-VN') + ' đ';
+  Number(value || 0).toLocaleString('vi-VN') + ' đ';
 
 const labels = {
   PENDING: 'Chờ thanh toán',
@@ -13,15 +20,50 @@ const labels = {
   EXPIRED: 'Đã hết hạn',
 };
 
+const getErrorMessage = (error, fallback) => {
+  const status = error.response?.status;
+
+  if (status === 401) {
+    return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+  }
+
+  if (status === 403) {
+    return 'Backend từ chối xác minh thanh toán (403). Cần kiểm tra quyền truy cập API /verify.';
+  }
+
+  return (
+    error.response?.data?.message ||
+    error.response?.data?.detail ||
+    fallback
+  );
+};
+
 export default function CheckoutPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { isAuthenticated } = useAuth();
 
   const [booking, setBooking] = useState(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [verifying, setVerifying] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
+  // Tránh chạy trùng QueryDr trong cùng một lần quay về.
+  const verifyingRef = useRef(false);
+  const verifiedReturnRef = useRef(null);
+
+  const returnedFromVnpay =
+    searchParams.get('vnpay') === 'returned';
+
+  const loadBooking = async () => {
+    const data = await bookingApi.getById(id);
+    setBooking(data);
+    return data;
+  };
+
+  // Tải trạng thái booking và cập nhật định kỳ.
   useEffect(() => {
     if (!isAuthenticated) return undefined;
 
@@ -30,20 +72,27 @@ export default function CheckoutPage() {
 
     const load = async () => {
       if (loading) return;
+
       loading = true;
 
       try {
         const data = await bookingApi.getById(id);
 
-        if (active) {
-          setBooking(data);
-          setError('');
+        if (!active) return;
+
+        setBooking(data);
+
+        // Chỉ chuyển sang trang vé khi backend đã xác nhận PAID.
+        if (data.status === 'PAID') {
+          navigate(`/tickets/${id}`, { replace: true });
         }
       } catch (requestError) {
         if (active) {
           setError(
-            requestError.response?.data?.message ||
+            getErrorMessage(
+              requestError,
               'Không thể tải đơn đặt vé.'
+            )
           );
         }
       } finally {
@@ -54,20 +103,198 @@ export default function CheckoutPage() {
     load();
 
     const poll = setInterval(load, 5000);
-    const clock = setInterval(() => setNow(Date.now()), 1000);
+
+    const clock = setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
 
     return () => {
       active = false;
       clearInterval(poll);
       clearInterval(clock);
     };
-  }, [id, isAuthenticated]);
+  }, [id, isAuthenticated, navigate]);
+
+  // Khi VNPay chuyển khách hàng về Checkout,
+  // gọi QueryDr một lần để xác minh giao dịch.
+  useEffect(() => {
+    if (!isAuthenticated || !returnedFromVnpay) {
+      return;
+    }
+
+    if (verifiedReturnRef.current === id) {
+      return;
+    }
+
+    verifiedReturnRef.current = id;
+
+    let active = true;
+
+    const verify = async () => {
+      if (verifyingRef.current) return;
+
+      verifyingRef.current = true;
+      setVerifying(true);
+      setError('');
+
+      try {
+        console.log(
+          '[VNPay] Đang gọi API verify cho booking:',
+          id
+        );
+
+        await bookingApi.verifyPayment(id);
+
+        const data = await bookingApi.getById(id);
+
+        if (!active) return;
+
+        setBooking(data);
+
+        if (data.status === 'PAID') {
+          navigate(`/tickets/${id}`, { replace: true });
+          return;
+        }
+
+        setError(
+          data.paymentReviewRequired
+            ? 'Giao dịch cần đối soát. Vé chưa được cấp.'
+            : 'Chưa xác nhận được thanh toán. Bạn có thể kiểm tra lại.'
+        );
+      } catch (requestError) {
+        if (active) {
+          console.error(
+            '[VNPay] Xác minh thất bại:',
+            requestError.response?.status,
+            requestError.response?.data
+          );
+
+          setError(
+            getErrorMessage(
+              requestError,
+              'Không thể xác minh thanh toán với VNPay.'
+            )
+          );
+        }
+      } finally {
+        verifyingRef.current = false;
+
+        if (active) {
+          setVerifying(false);
+        }
+      }
+    };
+
+    verify();
+
+    return () => {
+      active = false;
+    };
+  }, [
+    id,
+    isAuthenticated,
+    returnedFromVnpay,
+    navigate,
+  ]);
+
+  // Cho phép người dùng kiểm tra lại thủ công.
+  const verifyAgain = async () => {
+    if (verifyingRef.current || busy) return;
+
+    verifyingRef.current = true;
+    setVerifying(true);
+    setError('');
+
+    try {
+      await bookingApi.verifyPayment(id);
+
+      const data = await loadBooking();
+
+      if (data.status === 'PAID') {
+        navigate(`/tickets/${id}`, { replace: true });
+        return;
+      }
+
+      setError(
+        data.paymentReviewRequired
+          ? 'Giao dịch cần đối soát. Vé chưa được cấp.'
+          : 'VNPay chưa xác nhận giao dịch thành công.'
+      );
+    } catch (requestError) {
+      setError(
+        getErrorMessage(
+          requestError,
+          'Không thể kiểm tra giao dịch.'
+        )
+      );
+    } finally {
+      verifyingRef.current = false;
+      setVerifying(false);
+    }
+  };
+
+  const pay = async () => {
+    if (busy || verifying) return;
+
+    setBusy(true);
+    setError('');
+
+    try {
+      const result = await bookingApi.paymentUrl(id);
+
+      const destination = new URL(result.paymentUrl);
+
+      if (destination.protocol !== 'https:') {
+        throw new Error('URL thanh toán không hợp lệ.');
+      }
+
+      window.location.assign(destination.href);
+    } catch (requestError) {
+      setError(
+        getErrorMessage(
+          requestError,
+          requestError.message || 'Không thể mở VNPay.'
+        )
+      );
+
+      setBusy(false);
+    }
+  };
+
+  const cancel = async () => {
+    if (
+      !window.confirm(
+        'Hủy đơn và nhả các ghế đang giữ?'
+      )
+    ) {
+      return;
+    }
+
+    setBusy(true);
+    setError('');
+
+    try {
+      const data = await bookingApi.cancel(id);
+      setBooking(data);
+    } catch (requestError) {
+      setError(
+        getErrorMessage(
+          requestError,
+          'Không thể hủy đơn.'
+        )
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
 
   if (!isAuthenticated) {
     return (
       <div className="page-shell">
         <p>
-          Vui lòng <Link to="/login">đăng nhập</Link> để xem đơn đặt vé.
+          Vui lòng{' '}
+          <Link to="/login">đăng nhập</Link>
+          {' '}để xem đơn đặt vé.
         </p>
       </div>
     );
@@ -85,50 +312,10 @@ export default function CheckoutPage() {
 
   const seconds = Math.max(
     0,
-    Math.ceil((Date.parse(booking.holdExpiresAt) - now) / 1000)
+    Math.ceil(
+      (Date.parse(booking.holdExpiresAt) - now) / 1000
+    )
   );
-
-  const pay = async () => {
-    setBusy(true);
-    setError('');
-
-    try {
-      const result = await bookingApi.paymentUrl(id);
-      const destination = new URL(result.paymentUrl);
-
-      if (destination.protocol !== 'https:') {
-        throw new Error('URL thanh toán không hợp lệ.');
-      }
-
-      window.location.assign(destination.href);
-    } catch (requestError) {
-      setError(
-        requestError.response?.data?.message ||
-          requestError.response?.data?.detail ||
-          requestError.message ||
-          'Không thể mở VNPay.'
-      );
-
-      setBusy(false);
-    }
-  };
-
-  const cancel = async () => {
-    if (!window.confirm('Hủy đơn và nhả các ghế đang giữ?')) return;
-
-    setBusy(true);
-    setError('');
-
-    try {
-      setBooking(await bookingApi.cancel(id));
-    } catch (requestError) {
-      setError(
-        requestError.response?.data?.message || 'Không thể hủy đơn.'
-      );
-    } finally {
-      setBusy(false);
-    }
-  };
 
   return (
     <div className="page-shell">
@@ -141,60 +328,95 @@ export default function CheckoutPage() {
 
       <section className="section-heading">
         <div>
-          <p className="eyebrow">ĐƠN BK-{booking.id}</p>
+          <p className="eyebrow">
+            ĐƠN BK-{booking.id}
+          </p>
+
           <h1>{booking.movieTitle}</h1>
 
           <p>
             {booking.hallName} ·{' '}
-            {new Date(booking.startTime).toLocaleString('vi-VN')}
+            {new Date(
+              booking.startTime
+            ).toLocaleString('vi-VN')}
           </p>
         </div>
 
-        <strong>{labels[booking.status] || booking.status}</strong>
+        <strong>
+          {labels[booking.status] || booking.status}
+        </strong>
       </section>
 
       <div className="admin-form">
         <h2>Ghế và giá vé</h2>
 
-        {booking.seats.map((seat) => (
+        {booking.seats?.map((seat) => (
           <p key={seat.seatId}>
-            <strong>{seat.seatNumber}</strong> — {money(seat.price)}
+            <strong>{seat.seatNumber}</strong>
+            {' — '}
+            {money(seat.price)}
 
             {seat.ticketCode && (
               <>
                 <br />
-                <span>Mã vé: {seat.ticketCode}</span>
+                <span>
+                  Mã vé: {seat.ticketCode}
+                </span>
               </>
             )}
           </p>
         ))}
 
-        <h2>Tổng tiền: {money(booking.totalAmount)}</h2>
+        <h2>
+          Tổng tiền: {money(booking.totalAmount)}
+        </h2>
+
+        {verifying && (
+          <p className="muted">
+            Đang kiểm tra kết quả thanh toán với VNPay...
+          </p>
+        )}
 
         {booking.status === 'PENDING' && (
           <>
             <p>
               Còn {Math.floor(seconds / 60)}:
-              {String(seconds % 60).padStart(2, '0')} để thanh toán.
+              {String(seconds % 60).padStart(2, '0')}
+              {' '}để thanh toán.
             </p>
 
             <p className="muted">
-              Thanh toán qua VNPay sandbox. Vé được cấp sau khi hệ
-              thống nhận xác nhận từ VNPay; trang này tự cập nhật
-              trạng thái.
+              Vé chỉ được cấp khi backend xác nhận
+              thanh toán thành công và ghế còn hợp lệ.
             </p>
 
             <button
               className="primary-button"
-              disabled={busy || seconds === 0}
+              disabled={
+                busy || verifying || seconds === 0
+              }
               onClick={pay}
             >
-              {busy ? 'Đang xử lý...' : 'Thanh toán VNPay sandbox'}
+              {busy
+                ? 'Đang xử lý...'
+                : 'Thanh toán VNPay sandbox'}
             </button>
+
+            {returnedFromVnpay && (
+              <button
+                className="text-button"
+                disabled={busy || verifying}
+                onClick={verifyAgain}
+              >
+                {verifying
+                  ? 'Đang kiểm tra...'
+                  : 'Kiểm tra lại thanh toán'}
+              </button>
+            )}
 
             <button
               className="text-button"
-              disabled={busy}
+              disabled={busy || verifying}
               onClick={cancel}
             >
               Hủy đơn và nhả ghế
@@ -202,31 +424,57 @@ export default function CheckoutPage() {
 
             {seconds === 0 && (
               <p className="form-error">
-                Thời gian thanh toán đã hết. Đang cập nhật trạng thái đơn.
+                Thời gian giữ ghế đã hết.
+                Đang cập nhật trạng thái đơn.
               </p>
             )}
           </>
         )}
 
         {booking.status === 'PAID' && (
-          <p className="form-success">
-            Thanh toán đã được xác nhận. Vui lòng lưu mã vé bên trên.
-          </p>
+          <>
+            <p className="form-success">
+              Thanh toán đã được xác nhận.
+              Vé xem phim của bạn đã sẵn sàng.
+            </p>
+
+            <Link
+              className="primary-button"
+              to={`/tickets/${booking.id}`}
+            >
+              Xem vé của tôi
+            </Link>
+          </>
         )}
 
         {booking.paymentReviewRequired && (
           <p className="form-error">
-            VNPay đã báo nhận tiền sau khi đơn không còn hiệu lực.
-            Vé chưa được cấp; vui lòng liên hệ rạp với mã BK-{booking.id}
-            {' '}để đối soát và hoàn tiền.
+            Giao dịch cần được đối soát.
+            Vé chưa được cấp.
+            Vui lòng liên hệ rạp với mã
+            {' '}BK-{booking.id}.
           </p>
         )}
 
-        {['CANCELLED', 'EXPIRED'].includes(booking.status) && (
-          <p>
-            Đơn không còn hiệu lực. Hãy quay lại suất chiếu để chọn
-            ghế mới.
-          </p>
+        {['CANCELLED', 'EXPIRED'].includes(
+          booking.status
+        ) && (
+          <>
+            <p>
+              Đơn không còn hiệu lực.
+              Hãy quay lại suất chiếu để chọn ghế mới.
+            </p>
+
+            {returnedFromVnpay && (
+              <button
+                className="text-button"
+                disabled={verifying}
+                onClick={verifyAgain}
+              >
+                Kiểm tra giao dịch VNPay
+              </button>
+            )}
+          </>
         )}
 
         {error && (

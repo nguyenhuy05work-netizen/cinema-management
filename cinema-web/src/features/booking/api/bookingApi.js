@@ -1,3 +1,4 @@
+
 import axiosClient from '../../../api/axiosClient';
 
 export const bookingApi = {
@@ -15,4 +16,8 @@ export const bookingApi = {
 
   paymentUrl: (id) =>
     axiosClient.post(`/api/v1/payments/vnpay/${id}/url`),
+
+  // MỚI: Truy vấn kết quả thanh toán VNPay qua backend
+  verifyPayment: (id) =>
+    axiosClient.post(`/api/v1/payments/vnpay/${id}/verify`),
 };

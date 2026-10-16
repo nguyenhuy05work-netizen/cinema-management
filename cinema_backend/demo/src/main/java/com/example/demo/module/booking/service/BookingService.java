@@ -39,4 +39,10 @@ public interface BookingService {
     );
 
     void expirePendingBookings();
+
+    void saveVnpayTransaction(
+        Long bookingId,
+        String txnRef,
+        String createDate
+);
 }

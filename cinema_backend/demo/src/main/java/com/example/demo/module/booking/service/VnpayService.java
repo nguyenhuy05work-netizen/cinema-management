@@ -1,3 +1,4 @@
+
 package com.example.demo.module.booking.service;
 
 import com.example.demo.common.exception.BadRequestException;
@@ -42,6 +43,7 @@ public class VnpayService {
     private static final ZoneId VNPAY_ZONE =
             ZoneId.of("Asia/Ho_Chi_Minh");
 
+    // Tạo URL thanh toán VNPay
     public Map<String, String> paymentUrl(
             Long bookingId,
             String email,
@@ -73,14 +75,21 @@ public class VnpayService {
         );
 
         params.put("vnp_CurrCode", "VND");
+
+        // Mã giao dịch cố định theo booking
         params.put("vnp_TxnRef", "BK" + bookingId);
-        params.put("vnp_OrderInfo", "Thanh toan ve phim BK-" + bookingId);
+
+        params.put(
+                "vnp_OrderInfo",
+                "Thanh toan ve phim BK-" + bookingId
+        );
+
         params.put("vnp_OrderType", "other");
         params.put("vnp_Locale", "vn");
         params.put("vnp_ReturnUrl", returnUrl);
         params.put("vnp_IpAddr", clientIp);
 
-        // Giữ nguyên mã tham chiếu và thời điểm tạo cho cùng booking.
+        // Giữ nguyên thời gian tạo cho cùng booking
         params.put(
                 "vnp_CreateDate",
                 FORMAT.format(
@@ -98,6 +107,14 @@ public class VnpayService {
                 )
         );
 
+        // MỚI: Lưu mã giao dịch và thời gian tạo vào MySQL
+        // Phương thức này đã được thêm vào BookingServiceImpl.
+        bookings.saveVnpayTransaction(
+                bookingId,
+                params.get("vnp_TxnRef"),
+                params.get("vnp_CreateDate")
+        );
+
         String query = canonical(params);
 
         return Map.of(
@@ -107,8 +124,7 @@ public class VnpayService {
         );
     }
 
-    // IPN và Return đều phải có chữ ký hợp lệ.
-    // Chỉ IPN được dùng để ghi nhận thanh toán.
+    // Xác minh chữ ký từ VNPay Return hoặc IPN
     public Long verifiedBookingId(Map<String, String> input) {
         configured();
 
@@ -147,7 +163,8 @@ public class VnpayService {
             );
         }
 
-        String reference = input.getOrDefault("vnp_TxnRef", "");
+        String reference =
+                input.getOrDefault("vnp_TxnRef", "");
 
         if (!reference.matches("BK[1-9][0-9]*")) {
             throw new BadRequestException(
@@ -164,6 +181,7 @@ public class VnpayService {
         }
     }
 
+    // Xử lý IPN từ VNPay
     public Map<String, String> ipn(Map<String, String> params) {
         Long id;
 
@@ -199,7 +217,10 @@ public class VnpayService {
                 && "00".equals(params.get("vnp_TransactionStatus"));
 
         if (success && transaction.matches("0+")) {
-            return result("99", "Invalid transaction number");
+            return result(
+                    "99",
+                    "Invalid transaction number"
+            );
         }
 
         String code = bookings.applyVnpayPayment(
@@ -231,7 +252,10 @@ public class VnpayService {
         );
     }
 
-    public static String canonical(Map<String, String> fields) {
+    // Chuẩn hóa dữ liệu trước khi ký VNPay
+    public static String canonical(
+            Map<String, String> fields
+    ) {
         return new TreeMap<>(fields)
                 .entrySet()
                 .stream()
@@ -251,22 +275,28 @@ public class VnpayService {
         );
     }
 
+    // Tạo chữ ký HMAC SHA512
     private String hmac(String data) {
         try {
             Mac mac = Mac.getInstance("HmacSHA512");
 
             mac.init(
                     new SecretKeySpec(
-                            hashSecret.getBytes(StandardCharsets.UTF_8),
+                            hashSecret.getBytes(
+                                    StandardCharsets.UTF_8
+                            ),
                             "HmacSHA512"
                     )
             );
 
             return HexFormat.of().formatHex(
                     mac.doFinal(
-                            data.getBytes(StandardCharsets.UTF_8)
+                            data.getBytes(
+                                    StandardCharsets.UTF_8
+                            )
                     )
             );
+
         } catch (java.security.GeneralSecurityException ex) {
             throw new IllegalStateException(
                     "Không thể ký giao dịch VNPay.",
@@ -275,6 +305,7 @@ public class VnpayService {
         }
     }
 
+    // Kiểm tra cấu hình VNPay
     private void configured() {
         if (tmnCode.isBlank()
                 || hashSecret.isBlank()
