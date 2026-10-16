@@ -79,6 +79,13 @@ public class SecurityConfig {
                     "/api/v1/bookings/**"
                 ).authenticated()
 
+                // Ticket check-in: yêu cầu đăng nhập
+                // Sau này sẽ phân quyền riêng cho nhân viên
+                .requestMatchers(
+                 HttpMethod.POST,
+                "/api/v1/tickets/check-in"
+                ).authenticated()
+
                 // Payment: yêu cầu đăng nhập
                 .requestMatchers(
                     "/api/v1/payments/**"

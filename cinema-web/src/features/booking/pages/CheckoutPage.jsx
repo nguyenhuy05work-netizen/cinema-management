@@ -1,5 +1,5 @@
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Link,
   useNavigate,
@@ -50,9 +50,9 @@ export default function CheckoutPage() {
   const [verifying, setVerifying] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
-  // Tránh chạy trùng QueryDr trong cùng một lần quay về.
+  // Khóa thao tác thủ công và chia sẻ request đang chạy.
   const verifyingRef = useRef(false);
-  const verifiedReturnRef = useRef(null);
+  const inFlightVerifyRef = useRef(null);
 
   const returnedFromVnpay =
     searchParams.get('vnpay') === 'returned';
@@ -115,121 +115,87 @@ export default function CheckoutPage() {
     };
   }, [id, isAuthenticated, navigate]);
 
-  // Khi VNPay chuyển khách hàng về Checkout,
-  // gọi QueryDr một lần để xác minh giao dịch.
-  useEffect(() => {
-    if (!isAuthenticated || !returnedFromVnpay) {
-      return;
+  // Chia sẻ cùng một Promise giữa các lần chạy Effect (kể cả StrictMode).
+  // Không đánh dấu "đã xác minh" vĩnh viễn: người dùng luôn có thể thử lại.
+  const verifyPaymentOnce = useCallback(() => {
+    if (inFlightVerifyRef.current?.id === id) {
+      return inFlightVerifyRef.current.promise;
     }
 
-    if (verifiedReturnRef.current === id) {
-      return;
-    }
-
-    verifiedReturnRef.current = id;
-
-    let active = true;
-
-    const verify = async () => {
-      if (verifyingRef.current) return;
-
-      verifyingRef.current = true;
-      setVerifying(true);
-      setError('');
-
-      try {
-        console.log(
-          '[VNPay] Đang gọi API verify cho booking:',
-          id
-        );
-
-        await bookingApi.verifyPayment(id);
-
-        const data = await bookingApi.getById(id);
-
-        if (!active) return;
-
-        setBooking(data);
-
-        if (data.status === 'PAID') {
-          navigate(`/tickets/${id}`, { replace: true });
-          return;
-        }
-
-        setError(
-          data.paymentReviewRequired
-            ? 'Giao dịch cần đối soát. Vé chưa được cấp.'
-            : 'Chưa xác nhận được thanh toán. Bạn có thể kiểm tra lại.'
-        );
-      } catch (requestError) {
-        if (active) {
-          console.error(
-            '[VNPay] Xác minh thất bại:',
-            requestError.response?.status,
-            requestError.response?.data
-          );
-
-          setError(
-            getErrorMessage(
-              requestError,
-              'Không thể xác minh thanh toán với VNPay.'
-            )
-          );
-        }
-      } finally {
-        verifyingRef.current = false;
-
-        if (active) {
-          setVerifying(false);
-        }
-      }
-    };
-
-    verify();
-
-    return () => {
-      active = false;
-    };
-  }, [
-    id,
-    isAuthenticated,
-    returnedFromVnpay,
-    navigate,
-  ]);
-
-  // Cho phép người dùng kiểm tra lại thủ công.
-  const verifyAgain = async () => {
-    if (verifyingRef.current || busy) return;
-
-    verifyingRef.current = true;
     setVerifying(true);
     setError('');
 
-    try {
+    const promise = (async () => {
       await bookingApi.verifyPayment(id);
+      return bookingApi.getById(id);
+    })();
 
-      const data = await loadBooking();
+    inFlightVerifyRef.current = { id, promise };
 
-      if (data.status === 'PAID') {
-        navigate(`/tickets/${id}`, { replace: true });
-        return;
+    // Gắn handler ngay để mọi kết quả (kể cả lỗi) đều giải phóng loading.
+    // Không biến Promise gốc thành Promise bị nuốt lỗi.
+    promise.then(
+      () => {
+        if (inFlightVerifyRef.current?.promise === promise) {
+          inFlightVerifyRef.current = null;
+          setVerifying(false);
+        }
+      },
+      () => {
+        if (inFlightVerifyRef.current?.promise === promise) {
+          inFlightVerifyRef.current = null;
+          setVerifying(false);
+        }
       }
+    );
 
-      setError(
-        data.paymentReviewRequired
-          ? 'Giao dịch cần đối soát. Vé chưa được cấp.'
-          : 'VNPay chưa xác nhận giao dịch thành công.'
-      );
+    return promise;
+  }, [id]);
+
+  const applyVerifyResult = useCallback((data) => {
+    setBooking(data);
+    if (data.status === 'PAID') {
+      navigate(`/tickets/${id}`, { replace: true });
+      return;
+    }
+    setError(
+      data.paymentReviewRequired
+        ? 'Giao dịch cần đối soát. Vé chưa được cấp.'
+        : 'Chưa xác nhận được thanh toán. Bạn có thể kiểm tra lại.'
+    );
+  }, [id, navigate]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !returnedFromVnpay) return undefined;
+
+    let active = true;
+    verifyPaymentOnce().then(
+      (data) => {
+        if (active) applyVerifyResult(data);
+      },
+      (requestError) => {
+        if (active) {
+          setError(getErrorMessage(requestError, 'Không thể xác minh thanh toán với VNPay.'));
+        }
+      }
+    );
+
+    return () => {
+      // Chỉ ngắt cập nhật của Effect cũ, không chặn request dùng chung.
+      active = false;
+    };
+  }, [isAuthenticated, returnedFromVnpay, verifyPaymentOnce, applyVerifyResult]);
+
+  const verifyAgain = async () => {
+    if (busy || verifyingRef.current) return;
+    verifyingRef.current = true;
+    try {
+      const data = await verifyPaymentOnce();
+      applyVerifyResult(data);
     } catch (requestError) {
-      setError(
-        getErrorMessage(
-          requestError,
-          'Không thể kiểm tra giao dịch.'
-        )
-      );
+      setError(getErrorMessage(requestError, 'Không thể kiểm tra giao dịch.'));
     } finally {
       verifyingRef.current = false;
-      setVerifying(false);
     }
   };
 
