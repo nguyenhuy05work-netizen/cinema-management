@@ -11,6 +11,29 @@ const statusLabels = {
 
 const formatRole = (role) => role.replace(/^ROLE_/, '').replaceAll('_', ' ');
 
+const normalizeRoles = (roles = []) => {
+  if (!Array.isArray(roles)) return [];
+
+  return [...new Set(
+    roles
+      .map((role) =>
+        typeof role === 'string' ? role : role?.name
+      )
+      .filter(Boolean)
+  )];
+};
+
+const sameRoles = (a, b) => {
+  const left = [...normalizeRoles(a)].sort();
+  const right = [...normalizeRoles(b)].sort();
+
+  return (
+    left.length === right.length &&
+    left.every((role, index) => role === right[index])
+  );
+};
+
+
 const UserManagementPage = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,7 +42,12 @@ const UserManagementPage = () => {
 
   // States quản lý Drawer/Modal chỉnh sửa User
   const [editingUser, setEditingUser] = useState(null);
-  const [formData, setFormData] = useState({ status: '', roleName: '' });
+  const [formData, setFormData] = useState({
+  status: '',
+  roleNames: []
+});
+
+const [savingUser, setSavingUser] = useState(false);
 
   // States quản lý Modal gửi thông báo
   const [isNotifyOpen, setIsNotifyOpen] = useState(false);
@@ -47,31 +75,102 @@ const UserManagementPage = () => {
   };
 
   // Mở Drawer/Modal chỉnh sửa
-  const handleEditClick = (user) => {
-    setEditingUser(user);
-    const currentRole = typeof user.roles?.[0] === 'object' ? user.roles[0].name : (user.roles?.[0] || 'ROLE_CUSTOMER');
-    setFormData({ status: user.status || 'ACTIVE', roleName: currentRole });
-  };
+  
+const handleEditClick = (user) => {
+  setEditingUser(user);
+
+  setFormData({
+    status: user.status,
+    roleNames: normalizeRoles(user.roles)
+  });
+};
+
+
+const handleRoleToggle = (roleName) => {
+  setFormData((prev) => {
+    const exists = prev.roleNames.includes(roleName);
+
+    return {
+      ...prev,
+      roleNames: exists
+        ? prev.roleNames.filter((name) => name !== roleName)
+        : [...prev.roleNames, roleName]
+    };
+  });
+};
+
 
   // Lưu thông tin sau khi sửa
-  const handleSaveUser = async (e) => {
-    e.preventDefault();
-    try {
-      if (formData.status !== editingUser.status) {
-        await userApi.updateStatus(editingUser.id, { status: formData.status });
-      }
-      if (formData.roleName) {
-        await userApi.updateRoles(editingUser.id, { roleNames: [formData.roleName] });
-      }
-      
-      // Cập nhật lại state local
-      setUsers(users.map((u) => u.id === editingUser.id ? { ...u, status: formData.status, roles: [formData.roleName] } : u));
-      setEditingUser(null);
-      alert('Cập nhật người dùng thành công!');
-    } catch (err) {
-      alert('Có lỗi xảy ra khi cập nhật!');
+  
+const handleSaveUser = async (e) => {
+  e.preventDefault();
+
+  if (!editingUser || savingUser) return;
+
+  const originalRoles = normalizeRoles(editingUser.roles);
+  const selectedRoles = normalizeRoles(formData.roleNames);
+
+  const statusChanged =
+    formData.status !== editingUser.status;
+
+  const rolesChanged =
+    !sameRoles(originalRoles, selectedRoles);
+
+  if (!statusChanged && !rolesChanged) {
+    setEditingUser(null);
+    return;
+  }
+
+  if (selectedRoles.length === 0) {
+    alert('Tài khoản phải có ít nhất một vai trò.');
+    return;
+  }
+
+  setSavingUser(true);
+
+  try {
+    // Thay đổi Role trước, nếu thực sự có thay đổi.
+    // Backend phải kiểm tra bảo vệ ADMIN cuối cùng.
+    if (rolesChanged) {
+      await userApi.updateRoles(editingUser.id, {
+        roleNames: selectedRoles
+      });
     }
-  };
+
+    // Chỉ cập nhật trạng thái khi thực sự thay đổi.
+    if (statusChanged) {
+      await userApi.updateStatus(editingUser.id, {
+        status: formData.status
+      });
+    }
+
+    // Lấy lại dữ liệu từ server thay vì tự tạo dữ liệu.
+    await fetchData();
+
+    setEditingUser(null);
+    alert('Cập nhật tài khoản thành công!');
+  } catch (error) {
+    console.error('Cập nhật tài khoản thất bại:', error);
+
+    // Hai API không nằm trong cùng một transaction.
+    // Nếu một API thành công và API sau thất bại,
+    // cần tải lại dữ liệu để biết trạng thái thực tế.
+    try {
+      await fetchData();
+    } catch (reloadError) {
+      console.error('Không thể tải lại tài khoản:', reloadError);
+    }
+
+    alert(
+      'Không thể hoàn tất cập nhật. ' +
+      'Một phần thay đổi có thể đã được lưu. ' +
+      'Hãy kiểm tra lại dữ liệu trước khi thử lại.'
+    );
+  } finally {
+    setSavingUser(false);
+  }
+};
+
 
   // Gửi thông báo
   const handleSendNotification = async (e) => {
@@ -142,7 +241,7 @@ const UserManagementPage = () => {
           </thead>
           <tbody>
             {filteredUsers.map((u) => {
-              const roleName = typeof u.roles?.[0] === 'object' ? u.roles[0].name : (u.roles?.[0] || 'ROLE_CUSTOMER');
+              
               const status = u.status || 'ACTIVE';
               return (
                 <tr key={u.id}>
@@ -157,9 +256,21 @@ const UserManagementPage = () => {
                       <i />{statusLabels[status] || status.replaceAll('_', ' ')}
                     </span>
                   </td>
-                  <td>
-                    <span className="user-role-badge"><i aria-hidden="true">◇</i>{formatRole(roleName)}</span>
-                  </td>
+                  
+<td>
+  <div className="user-role-list">
+    {normalizeRoles(u.roles).map((roleName) => (
+      <span
+        key={roleName}
+        className="user-role-badge"
+      >
+        <i aria-hidden="true">◇</i>
+        {formatRole(roleName)}
+      </span>
+    ))}
+  </div>
+</td>
+
                   <td className="user-row-actions">
                     <button className="user-icon-button" title={`Gửi thông báo tới ${u.fullName || u.email}`} aria-label={`Gửi thông báo tới ${u.fullName || u.email}`} onClick={() => { setNoticeUser(u); setIsNotifyOpen(true); }}>
                       ✉
@@ -193,18 +304,65 @@ const UserManagementPage = () => {
                 </select>
               </div>
 
-              <div className="user-form-group">
-                <label>Vai trò<small>Nhóm quyền trong hệ thống</small></label>
-                <select value={formData.roleName} onChange={(e) => setFormData({ ...formData, roleName: e.target.value })}>
-                  {roles.map((r) => (
-                    <option key={r.id || r.name} value={r.name}>{r.name}</option>
-                  ))}
-                </select>
-              </div>
+             
+<div className="user-form-group">
+  <label>
+    Vai trò tài khoản
+    <small>
+      Có thể lựa chọn nhiều vai trò cho một tài khoản
+    </small>
+  </label>
+
+  <div className="user-role-selector">
+    {roles.map((role) => {
+      const checked =
+        formData.roleNames.includes(role.name);
+
+      return (
+        <label
+          key={role.id || role.name}
+          className={`user-role-option ${
+            checked ? 'selected' : ''
+          }`}
+        >
+          <input
+            type="checkbox"
+            checked={checked}
+            disabled={savingUser}
+            onChange={() =>
+              handleRoleToggle(role.name)
+            }
+          />
+
+          <span className="user-role-option-content">
+            <strong>
+              {formatRole(role.name)}
+            </strong>
+
+            <small>
+              {role.name}
+            </small>
+          </span>
+        </label>
+      );
+    })}
+  </div>
+
+  <p className="user-role-hint">
+    Đã chọn {formData.roleNames.length} vai trò
+  </p>
+</div>
 
               <div className="user-modal-actions">
                 <button type="button" className="user-cancel-button" onClick={() => setEditingUser(null)}>Hủy</button>
-                <button type="submit" className="user-primary-button">Lưu thay đổi <span aria-hidden="true">→</span></button>
+                <button
+  type="submit"
+  className="user-primary-button"
+  disabled={savingUser || formData.roleNames.length === 0}
+>
+  {savingUser ? 'Đang lưu...' : 'Lưu thay đổi'}
+  <span aria-hidden="true"> →</span>
+</button>
               </div>
             </form>
           </div>
