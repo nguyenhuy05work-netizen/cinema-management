@@ -34,29 +34,75 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return pathMatcher.match("/api/v1/auth/**", path);
     }
 
-    @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
-        try {
-            String jwt = getJwtFromRequest(request);
+    
+@Override
+protected void doFilterInternal(
+        HttpServletRequest request,
+        HttpServletResponse response,
+        FilterChain filterChain
+) throws ServletException, IOException {
 
-            if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
-                String username = tokenProvider.getUsernameFromJWT(jwt);
+    try {
+        String jwt = getJwtFromRequest(request);
 
-                UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
-                UsernamePasswordAuthenticationToken authentication = 
-                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        if (StringUtils.hasText(jwt)
+                && tokenProvider.validateToken(jwt)) {
 
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+            String username =
+                    tokenProvider.getUsernameFromJWT(jwt);
+
+            UserDetails userDetails =
+                    customUserDetailsService.loadUserByUsername(username);
+
+            // Chặn tài khoản chưa kích hoạt hoặc bị khóa
+            if (!userDetails.isEnabled()
+                    || !userDetails.isAccountNonLocked()
+                    || !userDetails.isAccountNonExpired()
+                    || !userDetails.isCredentialsNonExpired()) {
+
+                SecurityContextHolder.clearContext();
+
+                response.sendError(
+                        HttpServletResponse.SC_UNAUTHORIZED,
+                        "Tài khoản không được phép truy cập"
+                );
+                return;
             }
-        } catch (Exception ex) {
-            logger.error("Could not set user authentication in security context", ex);
+
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null,
+                            userDetails.getAuthorities()
+                    );
+
+            authentication.setDetails(
+                    new WebAuthenticationDetailsSource()
+                            .buildDetails(request)
+            );
+
+            SecurityContextHolder.getContext()
+                    .setAuthentication(authentication);
         }
 
-        filterChain.doFilter(request, response);
+    } catch (Exception ex) {
+        SecurityContextHolder.clearContext();
+
+        logger.error(
+                "Could not set user authentication in security context",
+                ex
+        );
+
+        response.sendError(
+                HttpServletResponse.SC_UNAUTHORIZED,
+                "Không thể xác thực phiên đăng nhập"
+        );
+        return;
     }
+
+    filterChain.doFilter(request, response);
+}
+
 
     private String getJwtFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
