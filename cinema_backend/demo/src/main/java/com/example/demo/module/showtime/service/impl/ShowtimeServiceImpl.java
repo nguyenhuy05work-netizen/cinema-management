@@ -16,7 +16,7 @@ import com.example.demo.module.showtime.repository.ShowtimeRepository;
 import com.example.demo.module.showtime.repository.ShowtimeSeatRepository;
 import com.example.demo.module.showtime.service.ShowtimeService;
 import com.example.demo.module.movie.entity.Movie;
-import com.example.demo.module.movie.repository.*;
+import com.example.demo.module.movie.repository.MovieRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,11 +45,15 @@ public class ShowtimeServiceImpl implements ShowtimeService {
         boolean isOverlapped = showtimeRepository.existsOverlappingShowtime(
                 request.getHallId(), request.getStartTime(), endTime);
         if (isOverlapped) {
-            throw new IllegalStateException("Showtime overlaps with an existing showtime in this hall");
+            throw new IllegalStateException(
+                    "Showtime overlaps with an existing showtime in this hall"
+            );
         }
 
         Hall hall = hallRepository.findById(request.getHallId())
-                .orElseThrow(() -> new RuntimeException("Hall not found with id: " + request.getHallId()));
+                .orElseThrow(() -> new RuntimeException(
+                        "Hall not found with id: " + request.getHallId()
+                ));
 
         Showtime showtime = Showtime.builder()
                 .movie(movie)
@@ -59,10 +63,13 @@ public class ShowtimeServiceImpl implements ShowtimeService {
                 .basePrice(request.getBasePrice())
                 .build();
 
-        Showtime savedShowtime = showtimeRepository.save(showtime);
+        Showtime savedShowtime =
+                showtimeRepository.save(showtime);
 
-        // Tự động sinh danh sách ShowtimeSeat theo toàn bộ ghế của Hall
-        List<Seat> seatsInHall = seatRepository.findByHallId(hall.getId());
+        // Tạo ghế suất chiếu từ danh sách ghế của phòng.
+        List<Seat> seatsInHall =
+                seatRepository.findByHallId(hall.getId());
+
         List<ShowtimeSeat> showtimeSeats = seatsInHall.stream()
                 .map(seat -> ShowtimeSeat.builder()
                         .showtime(savedShowtime)
@@ -80,10 +87,18 @@ public class ShowtimeServiceImpl implements ShowtimeService {
     @Transactional(readOnly = true)
     public ShowtimeDetailResponse getShowtimeById(Long id) {
         Showtime showtime = showtimeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Showtime not found with id: " + id));
+                .orElseThrow(() -> new RuntimeException(
+                        "Showtime not found with id: " + id
+                ));
 
-        int totalSeats = showtimeSeatRepository.countByShowtimeIdAndStatus(id, null); // Hoặc lấy qua hall
-        int availableSeats = showtimeSeatRepository.countByShowtimeIdAndStatus(id, SeatStatus.AVAILABLE);
+        int totalSeats =
+                showtimeSeatRepository.countByShowtimeId(id);
+
+        int availableSeats =
+                showtimeSeatRepository.countByShowtimeIdAndStatus(
+                        id,
+                        SeatStatus.AVAILABLE
+                );
 
         return ShowtimeDetailResponse.builder()
                 .id(showtime.getId())
@@ -101,34 +116,58 @@ public class ShowtimeServiceImpl implements ShowtimeService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ShowtimeResponse> searchShowtimes(ShowtimeSearchFilter filter) {
-        LocalDateTime startOfDay = filter.getDate() != null ? filter.getDate().atStartOfDay() : null;
-        LocalDateTime endOfDay = filter.getDate() != null ? filter.getDate().atTime(LocalTime.MAX) : null;
+    public List<ShowtimeResponse> searchShowtimes(
+            ShowtimeSearchFilter filter
+    ) {
+        LocalDateTime startOfDay = filter.getDate() != null
+                ? filter.getDate().atStartOfDay()
+                : null;
 
-        List<Showtime> showtimes = showtimeRepository.searchShowtimes(
-                filter.getMovieId(), filter.getCinemaId(), filter.getHallId(), startOfDay, endOfDay);
+        LocalDateTime endOfDay = filter.getDate() != null
+                ? filter.getDate().atTime(LocalTime.MAX)
+                : null;
 
-        return showtimes.stream().map(this::mapToResponse).toList();
+        List<Showtime> showtimes =
+                showtimeRepository.searchShowtimes(
+                        filter.getMovieId(),
+                        filter.getCinemaId(),
+                        filter.getHallId(),
+                        startOfDay,
+                        endOfDay
+                );
+
+        return showtimes.stream()
+                .map(this::mapToResponse)
+                .toList();
     }
 
     @Override
     @Transactional
-    public ShowtimeResponse updateShowtime(Long id, UpdateShowtimeRequest request) {
+    public ShowtimeResponse updateShowtime(
+            Long id,
+            UpdateShowtimeRequest request
+    ) {
         Showtime showtime = showtimeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Showtime not found with id: " + id));
+                .orElseThrow(() -> new RuntimeException(
+                        "Showtime not found with id: " + id
+                ));
 
         LocalDateTime endTime = calculateEndTime(request.getStartTime(), showtime.getMovie());
         boolean isOverlapped = showtimeRepository.existsOverlappingShowtimeExcludingId(
                 showtime.getHall().getId(), request.getStartTime(), endTime, id);
         if (isOverlapped) {
-            throw new IllegalStateException("Updated showtime overlaps with an existing showtime");
+            throw new IllegalStateException(
+                    "Updated showtime overlaps with an existing showtime"
+            );
         }
 
         showtime.setStartTime(request.getStartTime());
         showtime.setEndTime(endTime);
         showtime.setBasePrice(request.getBasePrice());
 
-        Showtime updatedShowtime = showtimeRepository.save(showtime);
+        Showtime updatedShowtime =
+                showtimeRepository.save(showtime);
+
         return mapToResponse(updatedShowtime);
     }
 
@@ -144,8 +183,11 @@ public class ShowtimeServiceImpl implements ShowtimeService {
     @Transactional
     public void deleteShowtime(Long id) {
         if (!showtimeRepository.existsById(id)) {
-            throw new RuntimeException("Showtime not found with id: " + id);
+            throw new RuntimeException(
+                    "Showtime not found with id: " + id
+            );
         }
+
         showtimeRepository.deleteById(id);
     }
 

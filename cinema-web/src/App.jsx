@@ -1,126 +1,258 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
 
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+} from 'react-router-dom';
+
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './routes/ProtectedRoute';
+
+// Layouts
 import MainLayout from './components/layout/MainLayout/MainLayout';
 import ManagerLayout from './components/layout/ManagerLayout/ManagerLayout';
 import AdminSystemLayout from './components/layout/AdminSystemLayout/AdminSystemLayout';
-import RolePermissionManagementPage from './features/admin/pages/RolePermissionManagementPage';
+import ProfileLayout from './components/layout/ProfileLayout/ProfileLayout';
 
+// Authentication
 import LoginPage from './features/auth/pages/LoginPage';
 import RegisterPage from './features/auth/pages/RegisterPage';
+
+// User
 import ProfilePage from './features/user/pages/ProfilePage';
 import UserManagementPage from './features/user/pages/UserManagementPage';
+import NotificationsPage from './features/user/pages/NotificationsPage';
+
+// Movies
 import MovieListPage from './features/movie/pages/MovieListPage';
 import MovieDetailPage from './features/movie/pages/MovieDetailPage';
+
+// Cinemas
 import CinemaListPage from './features/cinema/pages/CinemaListPage';
 import CinemaShowtimesPage from './features/cinema/pages/CinemaShowtimesPage';
+
+// Showtimes
 import ShowtimeDetailPage from './features/showtime/pages/ShowtimeDetailPage';
+
+// Booking, VNPay & Tickets
+import CheckoutPage from './features/booking/pages/CheckoutPage';
+import MyBookingsPage from './features/booking/pages/MyBookingsPage';
+import TicketPage from './features/booking/pages/TicketPage';
+
+// Management
 import AdminDashboardPage from './features/admin/pages/AdminDashboardPage';
 import MovieManagementPage from './features/admin/pages/MovieManagementPage';
 import CinemaManagementPage from './features/admin/pages/CinemaManagementPage';
 import ShowtimeManagementPage from './features/admin/pages/ShowtimeManagementPage';
-import NotificationsPage from './features/user/pages/NotificationsPage';
-import ProtectedRoute from './routes/ProtectedRoute';
+import RolePermissionManagementPage from './features/admin/pages/RolePermissionManagementPage';
+
+// Reviews
 import ReviewsPage from './features/reviews/pages/ReviewsPage';
 import ReviewDetailPage from './features/reviews/pages/ReviewDetailPage';
 import ReviewManagementPage from './features/admin/pages/ReviewManagementPage';
+
+// Services
 import ServicesPage from './features/services/pages/ServicesPage';
+
 import './experience.css';
-import ProfileLayout from './components/layout/ProfileLayout/ProfileLayout';
 
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* Giao diện dành cho Khách & User (Dùng MainLayout) */}
+
+          {/* PUBLIC WEBSITE */}
           <Route element={<MainLayout />}>
-            <Route path="/" element={<MovieListPage />} />
-            <Route path="/movies/:id" element={<MovieDetailPage />} />
-            <Route path="/showtimes/:id" element={<ShowtimeDetailPage />} />
-            <Route path="/cinemas" element={<CinemaListPage />} />
-            <Route path="/cinemas/:id/showtimes" element={<CinemaShowtimesPage />} />
-            <Route path="/reviews" element={<ReviewsPage />} />
-            <Route path="/reviews/movie/:movieId" element={<ReviewsPage />} />
-            <Route path="/reviews/:id" element={<ReviewDetailPage />} />
-            <Route path="/services" element={<ServicesPage />} />
 
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
+            <Route
+              path="/"
+              element={<MovieListPage />}
+            />
 
-            <Route path="/notifications" element={<NotificationsPage />} />
+            <Route
+              path="/movies/:id"
+              element={<MovieDetailPage />}
+            />
+
+            <Route
+              path="/showtimes/:id"
+              element={<ShowtimeDetailPage />}
+            />
+
+            <Route
+              path="/cinemas"
+              element={<CinemaListPage />}
+            />
+
+            <Route
+              path="/cinemas/:id/showtimes"
+              element={<CinemaShowtimesPage />}
+            />
+
+            {/* Reviews */}
+            <Route
+              path="/reviews"
+              element={<ReviewsPage />}
+            />
+
+            <Route
+              path="/reviews/movie/:movieId"
+              element={<ReviewsPage />}
+            />
+
+            <Route
+              path="/reviews/:id"
+              element={<ReviewDetailPage />}
+            />
+
+            {/* Services */}
+            <Route
+              path="/services"
+              element={<ServicesPage />}
+            />
+
+            {/* Authentication */}
+            <Route
+              path="/login"
+              element={<LoginPage />}
+            />
+
+            <Route
+              path="/register"
+              element={<RegisterPage />}
+            />
+
+            {/* Notifications */}
+            <Route
+              path="/notifications"
+              element={<NotificationsPage />}
+            />
+
+            {/* Booking & VNPay */}
+            <Route element={<ProtectedRoute />}>
+
+              <Route
+                path="/checkout/:id"
+                element={<CheckoutPage />}
+              />
+
+              <Route
+                path="/tickets/:id"
+                element={<TicketPage />}
+              />
+
+              <Route
+                path="/bookings"
+                element={<MyBookingsPage />}
+              />
+
+            </Route>
+
           </Route>
 
-          {/* HỒ SƠ CÁ NHÂN DÙNG CHUNG */}
-<Route element={<ProtectedRoute />}>
-  <Route element={<ProfileLayout />}>
-    <Route
-      path="/profile"
-      element={<ProfilePage />}
-    />
-  </Route>
-</Route>
+          {/* USER PROFILE */}
+          <Route element={<ProtectedRoute />}>
+            <Route element={<ProfileLayout />}>
 
-          
-          {/* KHU VỰC MANAGER */}
-<Route element={<ProtectedRoute allowedRoles={['MANAGER']} />}>
-  <Route element={<ManagerLayout />}>
-    <Route
-      path="/manager"
-      element={<Navigate to="/manager/dashboard" replace />}
-    />
+              <Route
+                path="/profile"
+                element={<ProfilePage />}
+              />
 
-    <Route
-      path="/manager/dashboard"
-      element={<AdminDashboardPage />}
-    />
+            </Route>
+          </Route>
 
-    <Route
-      path="/manager/movies"
-      element={<MovieManagementPage />}
-    />
+          {/* MANAGER */}
+          <Route
+            element={
+              <ProtectedRoute
+                allowedRoles={['MANAGER']}
+              />
+            }
+          >
+            <Route element={<ManagerLayout />}>
 
-    <Route
-      path="/manager/reviews"
-      element={<ReviewManagementPage />}
-    />
+              <Route
+                path="/manager"
+                element={
+                  <Navigate
+                    to="/manager/dashboard"
+                    replace
+                  />
+                }
+              />
 
-    <Route
-      path="/manager/cinemas"
-      element={<CinemaManagementPage />}
-    />
+              <Route
+                path="/manager/dashboard"
+                element={<AdminDashboardPage />}
+              />
 
-    <Route
-      path="/manager/showtimes"
-      element={<ShowtimeManagementPage />}
-    />
-  </Route>
-</Route>
+              <Route
+                path="/manager/movies"
+                element={<MovieManagementPage />}
+              />
 
-{/* KHU VỰC ADMIN SYSTEM */}
-<Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
-  <Route element={<AdminSystemLayout />}>
-    <Route
-      path="/admin"
-      element={
-        <Navigate to="/admin/role-permissions" replace />
-      }
-    />
+              <Route
+                path="/manager/reviews"
+                element={<ReviewManagementPage />}
+              />
 
-    <Route
-      path="/admin/role-permissions"
-      element={<RolePermissionManagementPage />}
-    />
+              <Route
+                path="/manager/cinemas"
+                element={<CinemaManagementPage />}
+              />
 
-    <Route
-      path="/admin/users"
-      element={<UserManagementPage />}
-    />
-  </Route>
-</Route>
+              <Route
+                path="/manager/showtimes"
+                element={<ShowtimeManagementPage />}
+              />
 
-          {/* Fallback route khi gõ sai đường dẫn */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+            </Route>
+          </Route>
+
+          {/* ADMIN SYSTEM */}
+          <Route
+            element={
+              <ProtectedRoute
+                allowedRoles={['ADMIN']}
+              />
+            }
+          >
+            <Route element={<AdminSystemLayout />}>
+
+              <Route
+                path="/admin"
+                element={
+                  <Navigate
+                    to="/admin/role-permissions"
+                    replace
+                  />
+                }
+              />
+
+              <Route
+                path="/admin/role-permissions"
+                element={<RolePermissionManagementPage />}
+              />
+
+              <Route
+                path="/admin/users"
+                element={<UserManagementPage />}
+              />
+
+            </Route>
+          </Route>
+
+          {/* NOT FOUND */}
+          <Route
+            path="*"
+            element={
+              <Navigate to="/" replace />
+            }
+          />
+
         </Routes>
       </AuthProvider>
     </BrowserRouter>
