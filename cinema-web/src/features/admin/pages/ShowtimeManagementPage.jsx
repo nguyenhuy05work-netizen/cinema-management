@@ -8,16 +8,24 @@ const ShowtimeManagementPage = () => {
   const [cinemas, setCinemas] = useState([]);
   const [halls, setHalls] = useState([]);
   const [showtimes, setShowtimes] = useState([]);
-  const [form, setForm] = useState({ movieId: '', cinemaId: '', hallId: '', startTime: '', endTime: '', basePrice: '' });
+  const [form, setForm] = useState({ movieId: '', cinemaId: '', hallId: '', startTime: '', basePrice: '' });
   const load = () => showtimeApi.getAll().then(setShowtimes);
   useEffect(() => { movieApi.getAll().then(setMovies); cinemaApi.getAll().then(setCinemas); load(); }, []);
   const setField = (name, value) => setForm({ ...form, [name]: value });
   const cinemaChanged = (value) => { setForm({ ...form, cinemaId: value, hallId: '' }); hallApi.getByCinema(value).then(setHalls); };
+  const selectedMovie = movies.find((movie) => String(movie.id) === form.movieId);
+  const calculatedEndTime = () => {
+    if (!form.startTime || !selectedMovie?.durationMinutes) return '';
+    const endTime = new Date(form.startTime);
+    endTime.setMinutes(endTime.getMinutes() + selectedMovie.durationMinutes);
+    const pad = (value) => String(value).padStart(2, '0');
+    return `${endTime.getFullYear()}-${pad(endTime.getMonth() + 1)}-${pad(endTime.getDate())}T${pad(endTime.getHours())}:${pad(endTime.getMinutes())}`;
+  };
   const submit = async (event) => { event.preventDefault();
     // Bổ sung giây :00 để đúng chuẩn ISO-8601
     const formatDateTime = (dt) => (dt && dt.length === 16 ? `${dt}:00` : dt);
     await showtimeApi.create({ movieId: Number(form.movieId), hallId: Number(form.hallId), startTime: formatDateTime(form.startTime),
-      endTime: formatDateTime(form.endTime), basePrice: Number(form.basePrice) }); setForm({ movieId: '', cinemaId: '', hallId: '', startTime: '', endTime: '', basePrice: '' }); load(); };
+      basePrice: Number(form.basePrice) }); setForm({ movieId: '', cinemaId: '', hallId: '', startTime: '', basePrice: '' }); load(); };
   return <div className="admin-page">
     <div className="admin-page-heading">
       <p className="eyebrow">SCHEDULE CONTROL</p><h1>Quản lý suất chiếu</h1>
@@ -41,8 +49,8 @@ const ShowtimeManagementPage = () => {
               <label>Bắt đầu
                 <input type="datetime-local" value={form.startTime} onChange={(e) => setField('startTime', e.target.value)} required />
               </label>
-              <label>Kết thúc
-                <input type="datetime-local" value={form.endTime} onChange={(e) => setField('endTime', e.target.value)} required />
+              <label>Kết thúc (tự tính)
+                <input type="datetime-local" value={calculatedEndTime()} readOnly required />
               </label>
             </div>
             <input type="number" min="1" placeholder="Giá vé" value={form.basePrice} onChange={(e) => setField('basePrice', e.target.value)} required />
