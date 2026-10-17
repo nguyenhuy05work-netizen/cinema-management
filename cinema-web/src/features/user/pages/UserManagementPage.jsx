@@ -49,6 +49,7 @@ const UserManagementPage = () => {
   roleNames: []
 });
 
+
 const [savingUser, setSavingUser] = useState(false);
 
   // States quản lý Modal gửi thông báo
@@ -424,3 +425,4 @@ const handleSaveUser = async (e) => {
     </div>
   );
 }
+export default UserManagementPage;
