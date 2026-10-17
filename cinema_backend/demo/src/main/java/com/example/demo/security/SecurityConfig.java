@@ -1,3 +1,4 @@
+
 package com.example.demo.security;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,6 +8,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -15,8 +17,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
-
 
 @Configuration
 @EnableWebSecurity
@@ -32,55 +32,141 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration authConfig
+    ) throws Exception {
         return authConfig.getAuthenticationManager();
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http
+    ) throws Exception {
+
         http
-            // 1. Tắt CSRF và bật CORS mặc định
             .csrf(AbstractHttpConfigurer::disable)
             .cors(Customizer.withDefaults())
-            
-            // 2. Không lưu Session trên Server (Stateless JWT)
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            
-            // 3. Cấu hình Phân quyền API
-            // 3. Cấu hình Phân quyền API
+
+            .sessionManagement(session ->
+                session.sessionCreationPolicy(
+                    SessionCreationPolicy.STATELESS
+                )
+            )
+
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Preflight
-                .requestMatchers("/api/v1/auth/**").permitAll()        // Auth APIs (có v1)
-                .requestMatchers("/api/auth/**").permitAll()         // <--- THÊM DÒNG NÀY ĐỂ KHỚP VỚI POSTMAN KHÔNG CÓ v1
-                .requestMatchers("/api/v1/bookings/**").permitAll() 
-                .requestMatchers("/ws-cinema/**").permitAll()         // WebSocket STOMP Handshake
-                .requestMatchers("/api/cinemas/**").permitAll()        // Cinema module APIs
-                .requestMatchers("/api/cities/**").permitAll()
-                .requestMatchers("/api/halls/**").permitAll()
-                .requestMatchers("/api/seats/**").permitAll()
-                .requestMatchers("/api/v1/movies/**").permitAll()      // Movie module APIs
-                .requestMatchers("/api/v1/genres/**").permitAll()
-                .requestMatchers("/api/v1/showtimes/**").permitAll()   // Showtime module APIs
-                // Review: thao tác quản lý chỉ dành cho MANAGER
-.requestMatchers("/api/v1/reviews/admin/**")
-    .hasRole("MANAGER")
 
-// Các API đọc review được truy cập công khai
-.requestMatchers(HttpMethod.GET, "/api/v1/reviews/**")
-    .permitAll()
+                // CORS preflight
+                .requestMatchers(
+                    HttpMethod.OPTIONS,
+                    "/**"
+                ).permitAll()
 
-// Các request review khác phải được xác thực
-.requestMatchers("/api/v1/reviews/**")
-    .authenticated()
-                .requestMatchers("/api/v1/users/**").authenticated()
-                .requestMatchers("/api/v1/notifications/**").authenticated()
-                .requestMatchers("/api/v1/roles/**").hasRole("ADMIN")
-                .requestMatchers("/api/v1/permissions/**").hasRole("ADMIN")
-                .anyRequest().authenticated()                          // Các API khác ngoài danh sách trên cần Token
+                // Authentication APIs
+                .requestMatchers(
+                    "/api/v1/auth/**",
+                    "/api/auth/**"
+                ).permitAll()
+
+                // VNPay callbacks
+                // Không yêu cầu JWT nhưng phải xác thực chữ ký
+                .requestMatchers(
+                    HttpMethod.GET,
+                    "/api/v1/payments/vnpay/ipn",
+                    "/api/v1/payments/vnpay/return"
+                ).permitAll()
+
+                // Booking
+                .requestMatchers(
+                    "/api/v1/bookings/**"
+                ).authenticated()
+
+                // Ticket check-in
+                // Chỉ nhân viên, quản lý và admin
+                .requestMatchers(
+                    HttpMethod.POST,
+                    "/api/v1/tickets/check-in"
+                ).hasAnyRole(
+                    "STAFF",
+                    "MANAGER",
+                    "ADMIN"
+                )
+
+                // Các API ticket khác
+                .requestMatchers(
+                    "/api/v1/tickets/**"
+                ).authenticated()
+
+                // Payment
+                .requestMatchers(
+                    "/api/v1/payments/**"
+                ).authenticated()
+
+                // Showtime seat management
+                .requestMatchers(
+                    HttpMethod.PATCH,
+                    "/api/v1/showtimes/*/seats/status"
+                ).authenticated()
+
+                // WebSocket
+                .requestMatchers(
+                    "/ws-cinema/**"
+                ).permitAll()
+
+                // Cinema APIs
+                .requestMatchers(
+                    "/api/cinemas/**",
+                    "/api/cities/**",
+                    "/api/halls/**",
+                    "/api/seats/**"
+                ).permitAll()
+
+                // Movies, genres, showtimes
+                .requestMatchers(
+                    "/api/v1/movies/**",
+                    "/api/v1/genres/**",
+                    "/api/v1/showtimes/**"
+                ).permitAll()
+
+                // Review management
+                // Manager và Admin được quản lý review
+                .requestMatchers(
+                    "/api/v1/reviews/admin/**"
+                ).hasAnyRole(
+                    "MANAGER",
+                    "ADMIN"
+                )
+
+                // Public review reading
+                .requestMatchers(
+                    HttpMethod.GET,
+                    "/api/v1/reviews/**"
+                ).permitAll()
+
+                // Other review operations require login
+                .requestMatchers(
+                    "/api/v1/reviews/**"
+                ).authenticated()
+
+                // User and notifications
+                .requestMatchers(
+                    "/api/v1/users/**",
+                    "/api/v1/notifications/**"
+                ).authenticated()
+
+                // Role and permission management
+                .requestMatchers(
+                    "/api/v1/roles/**",
+                    "/api/v1/permissions/**"
+                ).hasRole("ADMIN")
+
+                // Remaining APIs
+                .anyRequest().authenticated()
             );
 
-        // 4. Đặt JwtAuthenticationFilter trước UsernamePasswordAuthenticationFilter
-        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(
+            jwtAuthenticationFilter,
+            UsernamePasswordAuthenticationFilter.class
+        );
 
         return http.build();
     }

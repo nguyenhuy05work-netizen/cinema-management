@@ -3,7 +3,7 @@ import {
   Link,
   Outlet,
   useLocation,
-  useNavigate
+  useNavigate,
 } from 'react-router-dom';
 
 import { useAuth } from '../../../context/AuthContext';
@@ -17,8 +17,19 @@ const MainLayout = () => {
     logout,
     isAuthenticated,
     hasRole,
-    user
+    user,
   } = useAuth();
+
+  const isActive = (path) => {
+    if (path === '/') {
+      return location.pathname === '/';
+    }
+
+    return (
+      location.pathname === path ||
+      location.pathname.startsWith(`${path}/`)
+    );
+  };
 
   const signOut = () => {
     logout();
@@ -27,11 +38,9 @@ const MainLayout = () => {
 
   return (
     <div className="main-layout-container">
-
       {/* HEADER */}
       <header className="main-header netflix-header">
         <div className="main-header-content">
-
           {/* LOGO */}
           <Link
             to="/"
@@ -43,57 +52,43 @@ const MainLayout = () => {
 
           {/* NAVIGATION */}
           <nav className="main-nav">
-
             <Link
               to="/"
-              className={`main-nav-link ${
-                location.pathname === '/' ? 'active' : ''
-              }`}
+              className={`main-nav-link ${isActive('/') ? 'active' : ''}`}
             >
               Trang chủ
             </Link>
 
             <Link
               to="/cinemas"
-              className={`main-nav-link ${
-                location.pathname.startsWith('/cinemas')
-                  ? 'active'
-                  : ''
-              }`}
+              className={`main-nav-link ${isActive('/cinemas') ? 'active' : ''}`}
             >
               Rạp chiếu
             </Link>
 
             <Link
               to="/reviews"
-              className={`main-nav-link ${
-                location.pathname.startsWith('/reviews')
-                  ? 'active'
-                  : ''
-              }`}
+              className={`main-nav-link ${isActive('/reviews') ? 'active' : ''}`}
             >
               Góc phê bình
             </Link>
 
             <Link
               to="/services"
-              className={`main-nav-link ${
-                location.pathname.startsWith('/services')
-                  ? 'active'
-                  : ''
-              }`}
+              className={`main-nav-link ${isActive('/services') ? 'active' : ''}`}
             >
               Dịch vụ
             </Link>
 
             {isAuthenticated ? (
               <>
-
-                {/* ADMIN */}
+                {/* ADMIN SYSTEM */}
                 {hasRole('ADMIN') && (
                   <Link
                     to="/admin/role-permissions"
-                    className="main-nav-link"
+                    className={`main-nav-link ${
+                      isActive('/admin') ? 'active' : ''
+                    }`}
                   >
                     Quản trị hệ thống
                   </Link>
@@ -103,19 +98,29 @@ const MainLayout = () => {
                 {hasRole('MANAGER') && (
                   <Link
                     to="/manager/dashboard"
-                    className="main-nav-link"
+                    className={`main-nav-link ${
+                      isActive('/manager') ? 'active' : ''
+                    }`}
                   >
                     Quản lý vận hành
                   </Link>
                 )}
 
+                {/* MY BOOKINGS */}
+                <Link
+                  to="/bookings"
+                  className={`main-nav-link ${
+                    isActive('/bookings') ? 'active' : ''
+                  }`}
+                >
+                  Vé của tôi
+                </Link>
+
                 {/* PROFILE */}
                 <Link
                   to="/profile"
                   className={`header-profile-link ${
-                    location.pathname === '/profile'
-                      ? 'active'
-                      : ''
+                    isActive('/profile') ? 'active' : ''
                   }`}
                   aria-label="Mở hồ sơ cá nhân"
                 >
@@ -128,7 +133,9 @@ const MainLayout = () => {
                   </span>
 
                   <span>
-                    {user?.fullName || user?.email}
+                    {user?.fullName ||
+                      user?.email ||
+                      'Tài khoản'}
                   </span>
 
                   <span
@@ -143,9 +150,7 @@ const MainLayout = () => {
                 <Link
                   to="/notifications"
                   className={`main-nav-link ${
-                    location.pathname === '/notifications'
-                      ? 'active'
-                      : ''
+                    isActive('/notifications') ? 'active' : ''
                   }`}
                 >
                   Thông báo
@@ -159,11 +164,9 @@ const MainLayout = () => {
                 >
                   Đăng xuất
                 </button>
-
               </>
             ) : (
               <div className="auth-buttons">
-
                 <Link
                   to="/login"
                   className="login-button"
@@ -177,10 +180,8 @@ const MainLayout = () => {
                 >
                   Đăng ký
                 </Link>
-
               </div>
             )}
-
           </nav>
         </div>
       </header>
@@ -193,22 +194,17 @@ const MainLayout = () => {
       {/* FOOTER */}
       <footer className="main-footer">
         <div className="footer-content">
-
           <Link to="/" className="footer-logo">
             CINEF
           </Link>
 
-          <p>
-            Điện ảnh hay hơn khi được sẻ chia.
-          </p>
+          <p>Điện ảnh hay hơn khi được sẻ chia.</p>
 
           <span>
             © 2026 CineF. Trải nghiệm điện ảnh của bạn.
           </span>
-
         </div>
       </footer>
-
     </div>
   );
 };
