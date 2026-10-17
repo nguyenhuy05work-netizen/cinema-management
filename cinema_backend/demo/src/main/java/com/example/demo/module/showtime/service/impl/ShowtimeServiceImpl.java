@@ -38,18 +38,15 @@ public class ShowtimeServiceImpl implements ShowtimeService {
     @Override
     @Transactional
     public ShowtimeResponse createShowtime(CreateShowtimeRequest request) {
-        if (request.getStartTime().isAfter(request.getEndTime())) {
-            throw new IllegalArgumentException("Start time must be before end time");
-        }
+        Movie movie = movieRepository.findById(request.getMovieId())
+                .orElseThrow(() -> new RuntimeException("Movie not found with id: " + request.getMovieId()));
 
+        LocalDateTime endTime = calculateEndTime(request.getStartTime(), movie);
         boolean isOverlapped = showtimeRepository.existsOverlappingShowtime(
-                request.getHallId(), request.getStartTime(), request.getEndTime());
+                request.getHallId(), request.getStartTime(), endTime);
         if (isOverlapped) {
             throw new IllegalStateException("Showtime overlaps with an existing showtime in this hall");
         }
-
-        Movie movie = movieRepository.findById(request.getMovieId())
-                .orElseThrow(() -> new RuntimeException("Movie not found with id: " + request.getMovieId()));
 
         Hall hall = hallRepository.findById(request.getHallId())
                 .orElseThrow(() -> new RuntimeException("Hall not found with id: " + request.getHallId()));
@@ -58,7 +55,7 @@ public class ShowtimeServiceImpl implements ShowtimeService {
                 .movie(movie)
                 .hall(hall)
                 .startTime(request.getStartTime())
-                .endTime(request.getEndTime())
+                .endTime(endTime)
                 .basePrice(request.getBasePrice())
                 .build();
 
@@ -120,18 +117,27 @@ public class ShowtimeServiceImpl implements ShowtimeService {
         Showtime showtime = showtimeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Showtime not found with id: " + id));
 
+        LocalDateTime endTime = calculateEndTime(request.getStartTime(), showtime.getMovie());
         boolean isOverlapped = showtimeRepository.existsOverlappingShowtimeExcludingId(
-                showtime.getHall().getId(), request.getStartTime(), request.getEndTime(), id);
+                showtime.getHall().getId(), request.getStartTime(), endTime, id);
         if (isOverlapped) {
             throw new IllegalStateException("Updated showtime overlaps with an existing showtime");
         }
 
         showtime.setStartTime(request.getStartTime());
-        showtime.setEndTime(request.getEndTime());
+        showtime.setEndTime(endTime);
         showtime.setBasePrice(request.getBasePrice());
 
         Showtime updatedShowtime = showtimeRepository.save(showtime);
         return mapToResponse(updatedShowtime);
+    }
+
+    private LocalDateTime calculateEndTime(LocalDateTime startTime, Movie movie) {
+        Integer durationMinutes = movie.getDurationMinutes();
+        if (durationMinutes == null || durationMinutes <= 0) {
+            throw new IllegalStateException("Movie duration must be greater than zero");
+        }
+        return startTime.plusMinutes(durationMinutes);
     }
 
     @Override
